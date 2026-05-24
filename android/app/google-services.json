@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "1083797462241",
+    "project_id": "bacpro-ba190",
+    "storage_bucket": "bacpro-ba190.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1083797462241:android:2b2a8a02dbc6f33c616ba0",
+        "android_client_info": {
+          "package_name": "com.example.bac_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1083797462241-f3ulcl15escvv9m6c9fbalm416h73el9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC25koEe5OPFCp9B8VbpAE9iLC52Zoo9Gk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1083797462241-f3ulcl15escvv9m6c9fbalm416h73el9.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1083797462241-5grfjkje9gg9nqi7ltnb0goi9heekscv.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.bacApp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

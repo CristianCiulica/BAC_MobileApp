@@ -1,8 +1,12 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'src/models/app_data.dart';
 import 'src/screens/login_screen.dart';
+import 'src/screens/main_shell.dart';
+import 'src/services/auth_service.dart';
 
 class BacApp extends StatelessWidget {
   const BacApp({super.key});
@@ -10,10 +14,21 @@ class BacApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'EduBAC',
+      title: 'BacPro',
       debugShowCheckedModeBanner: false,
       theme: _buildTheme(),
-      home: const LoginScreen(),
+      home: StreamBuilder<User?>(
+        stream: AuthService.userStream,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Scaffold(
+              body: Center(child: CupertinoActivityIndicator()),
+            );
+          }
+          if (snapshot.hasData) return const MainShell();
+          return const LoginScreen();
+        },
+      ),
     );
   }
 
@@ -42,11 +57,6 @@ class BacApp extends StatelessWidget {
         iconTheme: IconThemeData(color: AppColors.blue),
         systemOverlayStyle: SystemUiOverlayStyle.dark,
       ),
-      drawerTheme: const DrawerThemeData(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-      ),
     );
   }
 }
-

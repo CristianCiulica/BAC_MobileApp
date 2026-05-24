@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../models/app_data.dart';
 import '../navigation.dart';
+import '../services/auth_service.dart';
 import '../widgets/common.dart';
 import 'account_screens.dart';
 
@@ -187,13 +188,27 @@ class AppDrawer extends StatelessWidget {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 8),
+                  _DrawerSection(
+                    children: [
+                      _DrawerItem(
+                        icon: CupertinoIcons.square_arrow_right,
+                        label: 'Deconectează-te',
+                        color: AppColors.red,
+                        onTap: () async {
+                          Navigator.pop(context);
+                          await AuthService.signOut();
+                        },
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                'EduBAC v1.0.0 · Made in Romania',
+                'BacPro v1.0.0 · Made in Romania',
                 style: AppText.captionStyle.copyWith(color: AppColors.tertiaryLabel),
               ),
             ),
@@ -347,7 +362,7 @@ class ProfileSelectionScreen extends StatelessWidget {
           ),
           flexibleSpace: const FlexibleSpaceBar(
             titlePadding: EdgeInsets.fromLTRB(20, 0, 16, 14),
-            title: Text('EduBAC', style: AppText.largeTitleStyle),
+            title: Text('BacPro', style: AppText.largeTitleStyle),
             expandedTitleScale: 1.0,
             collapseMode: CollapseMode.none,
           ),
