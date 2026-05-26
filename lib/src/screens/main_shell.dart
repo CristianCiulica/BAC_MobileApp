@@ -133,7 +133,7 @@ class AppDrawer extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            const Divider(height: 1, color: AppColors.separator),
+            Divider(height: 1, color: AppColors.separator),
             const SizedBox(height: 8),
             Expanded(
               child: ListView(
@@ -262,7 +262,7 @@ class _StatItem extends StatelessWidget {
       children: [
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: '.SF Pro Display',
             fontSize: 22,
             fontWeight: FontWeight.w700,
@@ -294,7 +294,7 @@ class _DrawerSection extends StatelessWidget {
           for (int i = 0; i < children.length; i++) ...[
             children[i],
             if (i < children.length - 1)
-              const Divider(
+              Divider(
                 height: 0,
                 indent: 52,
                 color: AppColors.separator,
@@ -369,7 +369,7 @@ class _DrawerItemState extends State<_DrawerItem> {
                 ),
               ),
             if (widget.badge == null)
-              const Icon(
+              Icon(
                 CupertinoIcons.chevron_right,
                 color: AppColors.tertiaryLabel,
                 size: 14,
@@ -407,8 +407,8 @@ class ProfileSelectionScreen extends StatelessWidget {
               scaffoldKey.currentState?.openDrawer();
             },
           ),
-          flexibleSpace: const FlexibleSpaceBar(
-            titlePadding: EdgeInsets.fromLTRB(20, 0, 16, 14),
+          flexibleSpace: FlexibleSpaceBar(
+            titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
             title: Text('BacPro', style: AppText.largeTitleStyle),
             expandedTitleScale: 1.0,
             collapseMode: CollapseMode.none,
@@ -995,7 +995,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
                     ),
                   ),
                 ),
-                const Padding(
+                Padding(
                   padding: EdgeInsets.fromLTRB(20, 24, 20, 6),
                   child: Align(
                     alignment: Alignment.centerLeft,
@@ -1228,7 +1228,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
                     ),
                   ],
                 ),
-                const Padding(
+                Padding(
                   padding: EdgeInsets.fromLTRB(20, 20, 20, 6),
                   child: Align(
                     alignment: Alignment.centerLeft,
@@ -1262,7 +1262,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
                           ),
                         ),
                         if (_editingNotes) ...[
-                          const Divider(
+                          Divider(
                             color: AppColors.separator,
                             height: 16,
                             thickness: 0.5,

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'src/models/app_data.dart';
 import 'src/screens/login_screen.dart';
 import 'src/screens/main_shell.dart';
+import 'src/services/app_settings.dart';
 import 'src/services/auth_service.dart';
 
 class BacApp extends StatelessWidget {
@@ -13,36 +14,46 @@ class BacApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'BacPro',
-      debugShowCheckedModeBanner: false,
-      theme: _buildTheme(),
-      home: StreamBuilder<User?>(
-        stream: AuthService.userStream,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CupertinoActivityIndicator()),
-            );
-          }
-          if (snapshot.hasData) return const MainShell();
-          return const LoginScreen();
-        },
-      ),
+    return ValueListenableBuilder<bool>(
+      valueListenable: AppSettings.darkMode,
+      builder: (context, isDark, _) {
+        AppColors.isDark = isDark;
+
+        return MaterialApp(
+          title: 'BacPro',
+          debugShowCheckedModeBanner: false,
+          theme: _buildTheme(isDark),
+          home: StreamBuilder<User?>(
+            stream: AuthService.userStream,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CupertinoActivityIndicator()),
+                );
+              }
+              if (snapshot.hasData) return const MainShell();
+              return const LoginScreen();
+            },
+          ),
+        );
+      },
     );
   }
 
-  ThemeData _buildTheme() {
+  ThemeData _buildTheme(bool isDark) {
     return ThemeData(
+      brightness: isDark ? Brightness.dark : Brightness.light,
       useMaterial3: true,
       scaffoldBackgroundColor: AppColors.background,
-      colorScheme: const ColorScheme.light(
+      colorScheme: ColorScheme.fromSeed(
+        brightness: isDark ? Brightness.dark : Brightness.light,
+        seedColor: AppColors.blue,
         primary: AppColors.blue,
         secondary: AppColors.indigo,
-        surface: Colors.white,
+        surface: AppColors.surface,
       ),
       fontFamily: '.SF Pro Text',
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: AppColors.background,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
@@ -55,7 +66,9 @@ class BacApp extends StatelessWidget {
           letterSpacing: -0.3,
         ),
         iconTheme: IconThemeData(color: AppColors.blue),
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
+        systemOverlayStyle: isDark
+            ? SystemUiOverlayStyle.light
+            : SystemUiOverlayStyle.dark,
       ),
     );
   }

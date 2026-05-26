@@ -184,7 +184,7 @@ class _LoginScreenState extends State<LoginScreen>
                       const SizedBox(height: 20),
                       const Center(child: _AppIcon()),
                       const SizedBox(height: 18),
-                      const Center(
+                      Center(
                         child: Text(
                           'BacPro',
                           style: TextStyle(
@@ -259,7 +259,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                                 minSize: 0,
                                 onPressed: _resetPassword,
-                                child: const Text(
+                                child: Text(
                                   'Ai uitat parola?',
                                   style: TextStyle(
                                     fontFamily: '.SF Pro Text',
@@ -347,7 +347,7 @@ class _LoginScreenState extends State<LoginScreen>
                             );
                           },
                           child: RichText(
-                            text: const TextSpan(
+                            text: TextSpan(
                               style: TextStyle(
                                 fontFamily: '.SF Pro Text',
                                 fontSize: 14,
@@ -602,12 +602,12 @@ class _RegisterScreenState extends State<RegisterScreen>
                           CupertinoButton(
                             padding: EdgeInsets.zero,
                             onPressed: () => Navigator.pop(context),
-                            child: const Icon(
+                            child: Icon(
                               CupertinoIcons.back,
                               color: AppColors.navy,
                             ),
                           ),
-                          const Expanded(
+                          Expanded(
                             child: Text(
                               'Cont nou',
                               style: TextStyle(
@@ -637,7 +637,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                             const SizedBox(height: 8),
                             const Center(child: _AppIcon()),
                             const SizedBox(height: 16),
-                            const Center(
+                            Center(
                               child: Text(
                                 'Creează contul tău',
                                 style: TextStyle(
@@ -822,7 +822,7 @@ class _RegisterScreenState extends State<RegisterScreen>
                                   Navigator.pop(context);
                                 },
                                 child: RichText(
-                                  text: const TextSpan(
+                                  text: TextSpan(
                                     style: TextStyle(
                                       fontFamily: '.SF Pro Text',
                                       fontSize: 14,

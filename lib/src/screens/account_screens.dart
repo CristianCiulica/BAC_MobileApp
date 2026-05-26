@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../models/app_data.dart';
+import '../services/app_settings.dart';
 import '../services/auth_service.dart';
 import '../widgets/common.dart';
 
@@ -41,8 +42,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               onPressed: () => Navigator.pop(context),
               child: const Icon(CupertinoIcons.back, color: AppColors.blue),
             ),
-            flexibleSpace: const FlexibleSpaceBar(
-              titlePadding: EdgeInsets.fromLTRB(20, 0, 16, 14),
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
               title: Text('Profil', style: AppText.largeTitleStyle),
               expandedTitleScale: 1.0,
               collapseMode: CollapseMode.none,
@@ -227,8 +228,8 @@ class ProgressScreen extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
               child: const Icon(CupertinoIcons.back, color: AppColors.blue),
             ),
-            flexibleSpace: const FlexibleSpaceBar(
-              titlePadding: EdgeInsets.fromLTRB(20, 0, 16, 14),
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
               title: Text('Progres', style: AppText.largeTitleStyle),
               expandedTitleScale: 1.0,
               collapseMode: CollapseMode.none,
@@ -374,8 +375,8 @@ class HistoryScreen extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
               child: const Icon(CupertinoIcons.back, color: AppColors.blue),
             ),
-            flexibleSpace: const FlexibleSpaceBar(
-              titlePadding: EdgeInsets.fromLTRB(20, 0, 16, 14),
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
               title: Text('Istoric', style: AppText.largeTitleStyle),
               expandedTitleScale: 1.0,
               collapseMode: CollapseMode.none,
@@ -495,8 +496,8 @@ class _NotificationsSettingsScreenState
               onPressed: () => Navigator.pop(context),
               child: const Icon(CupertinoIcons.back, color: AppColors.blue),
             ),
-            flexibleSpace: const FlexibleSpaceBar(
-              titlePadding: EdgeInsets.fromLTRB(20, 0, 16, 14),
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
               title: Text('Notificări', style: AppText.largeTitleStyle),
               expandedTitleScale: 1.0,
               collapseMode: CollapseMode.none,
@@ -598,7 +599,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _darkMode = false;
+  bool _darkMode = AppSettings.darkMode.value;
   bool _haptics = true;
   bool _autoSave = true;
 
@@ -620,8 +621,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: () => Navigator.pop(context),
               child: const Icon(CupertinoIcons.back, color: AppColors.blue),
             ),
-            flexibleSpace: const FlexibleSpaceBar(
-              titlePadding: EdgeInsets.fromLTRB(20, 0, 16, 14),
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
               title: Text('Setări', style: AppText.largeTitleStyle),
               expandedTitleScale: 1.0,
               collapseMode: CollapseMode.none,
@@ -639,7 +640,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: AppColors.indigo,
                       label: 'Mod întunecat',
                       value: _darkMode,
-                      onChanged: (v) => setState(() => _darkMode = v),
+                      onChanged: (v) {
+                        AppSettings.setDarkMode(v);
+                        setState(() => _darkMode = v);
+                      },
                     ),
                     _SwitchCell(
                       icon: CupertinoIcons.circle_grid_hex_fill,
@@ -732,8 +736,8 @@ class AboutScreen extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
               child: const Icon(CupertinoIcons.back, color: AppColors.blue),
             ),
-            flexibleSpace: const FlexibleSpaceBar(
-              titlePadding: EdgeInsets.fromLTRB(20, 0, 16, 14),
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
               title: Text('Despre', style: AppText.largeTitleStyle),
               expandedTitleScale: 1.0,
               collapseMode: CollapseMode.none,
@@ -768,7 +772,7 @@ class AboutScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 14),
-                const Text(
+                Text(
                   'EduBAC',
                   style: TextStyle(
                     fontFamily: '.SF Pro Display',
@@ -779,7 +783,7 @@ class AboutScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 4),
-                const Text('Versiunea 1.0.0', style: AppText.subheadStyle),
+                Text('Versiunea 1.0.0', style: AppText.subheadStyle),
                 const SizedBox(height: 32),
                 IOSSection(
                   header: 'Aplicație',

@@ -9,7 +9,12 @@ class AppIconBadge extends StatelessWidget {
   final Color color;
   final double size;
 
-  const AppIconBadge({super.key, required this.icon, required this.color, this.size = 44});
+  const AppIconBadge({
+    super.key,
+    required this.icon,
+    required this.color,
+    this.size = 44,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +35,12 @@ class IOSSection extends StatelessWidget {
   final String? footer;
   final List<Widget> children;
 
-  const IOSSection({super.key, this.header, this.footer, required this.children});
+  const IOSSection({
+    super.key,
+    this.header,
+    this.footer,
+    required this.children,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +50,10 @@ class IOSSection extends StatelessWidget {
         if (header != null)
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 6),
-            child: Text(header!.toUpperCase(), style: AppText.footnoteSectionStyle),
+            child: Text(
+              header!.toUpperCase(),
+              style: AppText.footnoteSectionStyle,
+            ),
           ),
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
@@ -53,7 +66,12 @@ class IOSSection extends StatelessWidget {
               for (int i = 0; i < children.length; i++) ...[
                 children[i],
                 if (i < children.length - 1)
-                  const Divider(height: 0, indent: 60, color: AppColors.separator, thickness: 0.5),
+                  Divider(
+                    height: 0,
+                    indent: 60,
+                    color: AppColors.separator,
+                    thickness: 0.5,
+                  ),
               ],
             ],
           ),
@@ -75,7 +93,14 @@ class IOSCell extends StatefulWidget {
   final Widget? trailing;
   final VoidCallback? onTap;
 
-  const IOSCell({super.key, required this.leading, required this.title, this.subtitle, this.trailing, this.onTap});
+  const IOSCell({
+    super.key,
+    required this.leading,
+    required this.title,
+    this.subtitle,
+    this.trailing,
+    this.onTap,
+  });
 
   @override
   State<IOSCell> createState() => _IOSCellState();
@@ -118,7 +143,11 @@ class _IOSCellState extends State<IOSCell> {
             ),
             if (widget.trailing != null) widget.trailing!,
             const SizedBox(width: 4),
-            const Icon(CupertinoIcons.chevron_right, color: AppColors.tertiaryLabel, size: 16),
+            Icon(
+              CupertinoIcons.chevron_right,
+              color: AppColors.tertiaryLabel,
+              size: 16,
+            ),
           ],
         ),
       ),
@@ -135,9 +164,11 @@ class CountBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Text('$count materii', style: AppText.captionStyle),
     );
   }
 }
-
