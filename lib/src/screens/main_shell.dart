@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -811,6 +812,7 @@ class SessionSelectionScreen extends StatelessWidget {
                           context,
                           cupertinoRoute(
                             SubjectDetailScreen(
+                              profileName: profileName,
                               subjectName: subjectName,
                               year: year,
                               sessionName: session.name,
@@ -834,6 +836,7 @@ class SessionSelectionScreen extends StatelessWidget {
 }
 
 class SubjectDetailScreen extends StatefulWidget {
+  final String profileName;
   final String subjectName;
   final String year;
   final String sessionName;
@@ -843,6 +846,7 @@ class SubjectDetailScreen extends StatefulWidget {
 
   const SubjectDetailScreen({
     super.key,
+    required this.profileName,
     required this.subjectName,
     required this.year,
     required this.sessionName,
@@ -961,36 +965,98 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
     return AppColors.red;
   }
 
+  Future<File?> _loadSubjectPdfFile({required bool answerKey}) async {
+    final assets = await FirestoreService.fetchExamPdfAssets(
+      profile: widget.profileName,
+      subject: widget.subjectName,
+      year: widget.year,
+      session: widget.sessionName,
+    );
+
+    if (assets == null) return null;
+
+    final assetPath = answerKey ? assets.answerPdfAsset : assets.subjectPdfAsset;
+    if (assetPath.trim().isEmpty) return null;
+
+    return PdfExportService.exportSubjectPdf(assetPath: assetPath);
+  }
+
   Future<void> _openSubjectPdf({required bool answerKey}) async {
     HapticFeedback.selectionClick();
-    final file = await PdfExportService.exportSubjectPdf(
-      subjectName: widget.subjectName,
-      year: widget.year,
-      sessionName: widget.sessionName,
-      answerKey: answerKey,
-    );
-    if (!mounted) return;
-    _showPdfReadyDialog(file.path);
+    try {
+      final file = await _loadSubjectPdfFile(answerKey: answerKey);
+      if (!mounted) return;
+      if (file == null) {
+        _showPdfMissingDialog();
+        return;
+      }
+      _showPdfReadyDialog(file.path);
+    } catch (_) {
+      if (!mounted) return;
+      _showPdfErrorDialog();
+    }
   }
 
   Future<void> _shareSubjectPdf() async {
     HapticFeedback.selectionClick();
-    final file = await PdfExportService.exportSubjectPdf(
-      subjectName: widget.subjectName,
-      year: widget.year,
-      sessionName: widget.sessionName,
-      answerKey: false,
+    try {
+      final file = await _loadSubjectPdfFile(answerKey: false);
+      if (!mounted) return;
+      if (file == null) {
+        _showPdfMissingDialog();
+        return;
+      }
+      _showPdfReadyDialog(file.path);
+    } catch (_) {
+      if (!mounted) return;
+      _showPdfErrorDialog();
+    }
+  }
+
+  void _showPdfMissingDialog() {
+    showCupertinoDialog(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: const Text('PDF indisponibil'),
+        content: const Text(
+          'Nu exista un PDF asociat pentru aceasta selectie. Verifica in Firestore sau structura din assets.',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
     );
-    if (!mounted) return;
-    _showPdfReadyDialog(file.path);
+  }
+
+  void _showPdfErrorDialog() {
+    showCupertinoDialog(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: const Text('Eroare la incarcare'),
+        content: const Text(
+          'Nu am reusit sa deschid PDF-ul. Incearca din nou sau verifica asset-ul.',
+        ),
+        actions: [
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showPdfReadyDialog(String path) {
     showCupertinoDialog(
       context: context,
       builder: (_) => CupertinoAlertDialog(
-        title: const Text('PDF generat'),
-        content: Text('Fișierul a fost salvat aici:\n$path'),
+        title: const Text('PDF pregatit'),
+        content: Text('Fisierul este salvat aici:\n$path'),
         actions: [
           CupertinoDialogAction(
             isDefaultAction: true,
