@@ -37,6 +37,9 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final userName = AuthService.displayName;
+    final userEmail = AuthService.currentUser?.email;
+
     return Drawer(
       width: MediaQuery.of(context).size.width * 0.82,
       child: SafeArea(
@@ -57,15 +60,19 @@ class AppDrawer extends StatelessWidget {
                       ),
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Icon(CupertinoIcons.person_fill, color: Colors.white, size: 32),
+                    child: const Icon(
+                      CupertinoIcons.person_fill,
+                      color: Colors.white,
+                      size: 32,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Andrei Popescu',
+                        Text(
+                          userName,
                           style: TextStyle(
                             fontFamily: '.SF Pro Display',
                             fontSize: 19,
@@ -75,10 +82,17 @@ class AppDrawer extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 3),
-                        Text('Clasa a XII-a · Mate-Info', style: AppText.subheadStyle),
+                        Text(
+                          userEmail ?? 'Clasa a XII-a · Mate-Info',
+                          style: AppText.subheadStyle,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         const SizedBox(height: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.green.withAlpha(38),
                             borderRadius: BorderRadius.circular(8),
@@ -154,7 +168,8 @@ class AppDrawer extends StatelessWidget {
                         icon: CupertinoIcons.bell_fill,
                         label: 'Notificări',
                         color: AppColors.red,
-                        onTap: () => _push(context, const NotificationsSettingsScreen()),
+                        onTap: () =>
+                            _push(context, const NotificationsSettingsScreen()),
                       ),
                       _DrawerItem(
                         icon: CupertinoIcons.moon_fill,
@@ -209,7 +224,9 @@ class AppDrawer extends StatelessWidget {
               padding: const EdgeInsets.all(16),
               child: Text(
                 'BacPro v1.0.0 · Made in Romania',
-                style: AppText.captionStyle.copyWith(color: AppColors.tertiaryLabel),
+                style: AppText.captionStyle.copyWith(
+                  color: AppColors.tertiaryLabel,
+                ),
               ),
             ),
           ],
@@ -268,13 +285,21 @@ class _DrawerSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
         children: [
           for (int i = 0; i < children.length; i++) ...[
             children[i],
             if (i < children.length - 1)
-              const Divider(height: 0, indent: 52, color: AppColors.separator, thickness: 0.5),
+              const Divider(
+                height: 0,
+                indent: 52,
+                color: AppColors.separator,
+                thickness: 0.5,
+              ),
           ],
         ],
       ),
@@ -289,7 +314,13 @@ class _DrawerItem extends StatefulWidget {
   final String? badge;
   final VoidCallback onTap;
 
-  const _DrawerItem({required this.icon, required this.label, required this.color, this.badge, required this.onTap});
+  const _DrawerItem({
+    required this.icon,
+    required this.label,
+    required this.color,
+    this.badge,
+    required this.onTap,
+  });
 
   @override
   State<_DrawerItem> createState() => _DrawerItemState();
@@ -312,7 +343,9 @@ class _DrawerItemState extends State<_DrawerItem> {
       onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 80),
-        color: _pressed ? AppColors.separator.withAlpha(128) : Colors.transparent,
+        color: _pressed
+            ? AppColors.separator.withAlpha(128)
+            : Colors.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
           children: [
@@ -322,14 +355,25 @@ class _DrawerItemState extends State<_DrawerItem> {
             if (widget.badge != null)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                decoration: BoxDecoration(color: AppColors.blue, borderRadius: BorderRadius.circular(6)),
+                decoration: BoxDecoration(
+                  color: AppColors.blue,
+                  borderRadius: BorderRadius.circular(6),
+                ),
                 child: Text(
                   widget.badge!,
-                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             if (widget.badge == null)
-              const Icon(CupertinoIcons.chevron_right, color: AppColors.tertiaryLabel, size: 14),
+              const Icon(
+                CupertinoIcons.chevron_right,
+                color: AppColors.tertiaryLabel,
+                size: 14,
+              ),
           ],
         ),
       ),
@@ -354,7 +398,10 @@ class ProfileSelectionScreen extends StatelessWidget {
           scrolledUnderElevation: 0.5,
           shadowColor: AppColors.separator,
           leading: IconButton(
-            icon: const Icon(CupertinoIcons.line_horizontal_3, color: AppColors.blue),
+            icon: const Icon(
+              CupertinoIcons.line_horizontal_3,
+              color: AppColors.blue,
+            ),
             onPressed: () {
               HapticFeedback.mediumImpact();
               scaffoldKey.currentState?.openDrawer();
@@ -377,11 +424,17 @@ class ProfileSelectionScreen extends StatelessWidget {
                 children: [
                   for (final profile in appProfiles)
                     IOSCell(
-                      leading: AppIconBadge(icon: profile.icon, color: profile.accentColor),
+                      leading: AppIconBadge(
+                        icon: profile.icon,
+                        color: profile.accentColor,
+                      ),
                       title: profile.name,
                       subtitle: profile.description,
                       trailing: CountBadge(profile.subjects.length),
-                      onTap: () => Navigator.push(context, cupertinoRoute(SubjectListScreen(profile: profile))),
+                      onTap: () => Navigator.push(
+                        context,
+                        cupertinoRoute(SubjectListScreen(profile: profile)),
+                      ),
                     ),
                 ],
               ),
@@ -389,19 +442,28 @@ class ProfileSelectionScreen extends StatelessWidget {
                 header: 'Acces rapid',
                 children: [
                   IOSCell(
-                    leading: const AppIconBadge(icon: CupertinoIcons.calendar_today, color: AppColors.red),
+                    leading: const AppIconBadge(
+                      icon: CupertinoIcons.calendar_today,
+                      color: AppColors.red,
+                    ),
                     title: '2025',
                     subtitle: 'Cele mai recente subiecte',
                     onTap: () {},
                   ),
                   IOSCell(
-                    leading: const AppIconBadge(icon: CupertinoIcons.flame_fill, color: AppColors.orange),
+                    leading: const AppIconBadge(
+                      icon: CupertinoIcons.flame_fill,
+                      color: AppColors.orange,
+                    ),
                     title: 'Simulare Națională',
                     subtitle: 'Testare din primăvară',
                     onTap: () {},
                   ),
                   IOSCell(
-                    leading: const AppIconBadge(icon: CupertinoIcons.star_fill, color: AppColors.purple),
+                    leading: const AppIconBadge(
+                      icon: CupertinoIcons.star_fill,
+                      color: AppColors.purple,
+                    ),
                     title: 'Sesiunea Iunie',
                     subtitle: 'Examenul oficial principal',
                     onTap: () {},
@@ -455,10 +517,17 @@ class SubjectListScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Container(
                     padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(color: profile.accentColor, borderRadius: BorderRadius.circular(16)),
+                    decoration: BoxDecoration(
+                      color: profile.accentColor,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: Row(
                       children: [
-                        AppIconBadge(icon: profile.icon, color: Colors.white.withAlpha(64), size: 52),
+                        AppIconBadge(
+                          icon: profile.icon,
+                          color: Colors.white.withAlpha(64),
+                          size: 52,
+                        ),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
@@ -496,7 +565,10 @@ class SubjectListScreen extends StatelessWidget {
                   children: [
                     for (final subject in profile.subjects)
                       IOSCell(
-                        leading: AppIconBadge(icon: subject.icon, color: subject.accentColor),
+                        leading: AppIconBadge(
+                          icon: subject.icon,
+                          color: subject.accentColor,
+                        ),
                         title: subject.title,
                         onTap: () => Navigator.push(
                           context,
@@ -528,7 +600,13 @@ class YearSelectionScreen extends StatelessWidget {
   final IconData subjectIcon;
   final Color subjectColor;
 
-  const YearSelectionScreen({super.key, required this.profileName, required this.subjectName, required this.subjectIcon, required this.subjectColor});
+  const YearSelectionScreen({
+    super.key,
+    required this.profileName,
+    required this.subjectName,
+    required this.subjectIcon,
+    required this.subjectColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -565,7 +643,10 @@ class YearSelectionScreen extends StatelessWidget {
                   children: [
                     for (final year in examYears)
                       IOSCell(
-                        leading: const AppIconBadge(icon: CupertinoIcons.calendar, color: AppColors.indigo),
+                        leading: const AppIconBadge(
+                          icon: CupertinoIcons.calendar,
+                          color: AppColors.indigo,
+                        ),
                         title: year,
                         onTap: () => Navigator.push(
                           context,
@@ -599,7 +680,14 @@ class SessionSelectionScreen extends StatelessWidget {
   final IconData subjectIcon;
   final Color subjectColor;
 
-  const SessionSelectionScreen({super.key, required this.profileName, required this.subjectName, required this.year, required this.subjectIcon, required this.subjectColor});
+  const SessionSelectionScreen({
+    super.key,
+    required this.profileName,
+    required this.subjectName,
+    required this.year,
+    required this.subjectIcon,
+    required this.subjectColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -632,17 +720,27 @@ class SessionSelectionScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-                  child: Text('$subjectName · $year', style: AppText.subheadStyle),
+                  child: Text(
+                    '$subjectName · $year',
+                    style: AppText.subheadStyle,
+                  ),
                 ),
                 IOSSection(
                   header: 'Alege sesiunea',
                   children: [
                     for (final session in examSessions)
                       IOSCell(
-                        leading: AppIconBadge(icon: session.icon, color: session.color),
+                        leading: AppIconBadge(
+                          icon: session.icon,
+                          color: session.color,
+                        ),
                         title: session.name,
                         subtitle: session.desc,
-                        trailing: const Icon(CupertinoIcons.play_fill, color: AppColors.blue, size: 16),
+                        trailing: const Icon(
+                          CupertinoIcons.play_fill,
+                          color: AppColors.blue,
+                          size: 16,
+                        ),
                         onTap: () => Navigator.push(
                           context,
                           cupertinoRoute(
@@ -691,7 +789,8 @@ class SubjectDetailScreen extends StatefulWidget {
   State<SubjectDetailScreen> createState() => _SubjectDetailScreenState();
 }
 
-class _SubjectDetailScreenState extends State<SubjectDetailScreen> with SingleTickerProviderStateMixin {
+class _SubjectDetailScreenState extends State<SubjectDetailScreen>
+    with SingleTickerProviderStateMixin {
   static const int _bacDuration = 10800;
   int _secondsLeft = _bacDuration;
   bool _timerRunning = false;
@@ -709,8 +808,13 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> with SingleTi
   @override
   void initState() {
     super.initState();
-    _pulseController = AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat(reverse: true);
-    _pulseAnim = Tween(begin: 1.0, end: 1.05).animate(CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut));
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
+    _pulseAnim = Tween(begin: 1.0, end: 1.05).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
   }
 
   @override
@@ -759,7 +863,9 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> with SingleTi
       context: context,
       builder: (_) => CupertinoAlertDialog(
         title: const Text('Timp expirat'),
-        content: const Text('Cele 3 ore de examen s-au încheiat. Predă lucrarea.'),
+        content: const Text(
+          'Cele 3 ore de examen s-au încheiat. Predă lucrarea.',
+        ),
         actions: [
           CupertinoDialogAction(
             isDefaultAction: true,
@@ -811,9 +917,14 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> with SingleTi
                     context: context,
                     builder: (_) => CupertinoAlertDialog(
                       title: const Text('Ieși din subiect?'),
-                      content: const Text('Timerul va fi oprit. Progresul tău se va salva.'),
+                      content: const Text(
+                        'Timerul va fi oprit. Progresul tău se va salva.',
+                      ),
                       actions: [
-                        CupertinoDialogAction(onPressed: () => Navigator.pop(context), child: const Text('Rămâi')),
+                        CupertinoDialogAction(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Rămâi'),
+                        ),
                         CupertinoDialogAction(
                           isDestructiveAction: true,
                           onPressed: () {
@@ -852,14 +963,32 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> with SingleTi
                     ),
                     child: Row(
                       children: [
-                        AppIconBadge(icon: widget.subjectIcon, color: Colors.white.withAlpha(64), size: 46),
+                        AppIconBadge(
+                          icon: widget.subjectIcon,
+                          color: Colors.white.withAlpha(64),
+                          size: 46,
+                        ),
                         const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(widget.sessionName, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16, letterSpacing: -0.3)),
+                            Text(
+                              widget.sessionName,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                                letterSpacing: -0.3,
+                              ),
+                            ),
                             const SizedBox(height: 3),
-                            Text(widget.year, style: TextStyle(color: Colors.white.withAlpha(204), fontSize: 14)),
+                            Text(
+                              widget.year,
+                              style: TextStyle(
+                                color: Colors.white.withAlpha(204),
+                                fontSize: 14,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -868,13 +997,22 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> with SingleTi
                 ),
                 const Padding(
                   padding: EdgeInsets.fromLTRB(20, 24, 20, 6),
-                  child: Align(alignment: Alignment.centerLeft, child: Text('CRONOMETRU EXAMEN', style: AppText.footnoteSectionStyle)),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'CRONOMETRU EXAMEN',
+                      style: AppText.footnoteSectionStyle,
+                    ),
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Container(
                     padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     child: Column(
                       children: [
                         Stack(
@@ -887,7 +1025,9 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> with SingleTi
                                 value: _timerProgress,
                                 strokeWidth: 8,
                                 backgroundColor: AppColors.background,
-                                valueColor: AlwaysStoppedAnimation<Color>(_timerColor),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  _timerColor,
+                                ),
                                 strokeCap: StrokeCap.round,
                               ),
                             ),
@@ -908,12 +1048,18 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> with SingleTi
                                       fontWeight: FontWeight.w700,
                                       color: _timerColor,
                                       letterSpacing: -1.5,
-                                      fontFeatures: const [FontFeature.tabularFigures()],
+                                      fontFeatures: const [
+                                        FontFeature.tabularFigures(),
+                                      ],
                                     ),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    _timerRunning ? 'În desfășurare' : (_timerFinished ? 'Finalizat' : 'Pregătit'),
+                                    _timerRunning
+                                        ? 'În desfășurare'
+                                        : (_timerFinished
+                                              ? 'Finalizat'
+                                              : 'Pregătit'),
                                     style: AppText.captionStyle,
                                   ),
                                 ],
@@ -927,13 +1073,33 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> with SingleTi
                           children: [
                             if (!_timerFinished) ...[
                               if (_timerRunning)
-                                _TimerButton(label: 'Pauză', icon: CupertinoIcons.pause_fill, color: AppColors.orange, onTap: _pauseTimer)
+                                _TimerButton(
+                                  label: 'Pauză',
+                                  icon: CupertinoIcons.pause_fill,
+                                  color: AppColors.orange,
+                                  onTap: _pauseTimer,
+                                )
                               else
-                                _TimerButton(label: 'Start 3h', icon: CupertinoIcons.play_fill, color: AppColors.green, onTap: _startTimer),
+                                _TimerButton(
+                                  label: 'Start 3h',
+                                  icon: CupertinoIcons.play_fill,
+                                  color: AppColors.green,
+                                  onTap: _startTimer,
+                                ),
                               const SizedBox(width: 12),
-                              _TimerButton(label: 'Reset', icon: CupertinoIcons.arrow_counterclockwise, color: AppColors.secondLabel, onTap: _resetTimer),
+                              _TimerButton(
+                                label: 'Reset',
+                                icon: CupertinoIcons.arrow_counterclockwise,
+                                color: AppColors.secondLabel,
+                                onTap: _resetTimer,
+                              ),
                             ] else
-                              _TimerButton(label: 'Resetează', icon: CupertinoIcons.arrow_counterclockwise, color: AppColors.blue, onTap: _resetTimer),
+                              _TimerButton(
+                                label: 'Resetează',
+                                icon: CupertinoIcons.arrow_counterclockwise,
+                                color: AppColors.blue,
+                                onTap: _resetTimer,
+                              ),
                           ],
                         ),
                         const SizedBox(height: 12),
@@ -958,9 +1124,14 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> with SingleTi
                             children: [
                               Text('Autoevaluare', style: AppText.bodyStyle),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: _gradeColor(_estimatedGrade).withAlpha(38),
+                                  color: _gradeColor(
+                                    _estimatedGrade,
+                                  ).withAlpha(38),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Text(
@@ -1012,7 +1183,10 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> with SingleTi
                   header: 'Subiect',
                   children: [
                     IOSCell(
-                      leading: const AppIconBadge(icon: CupertinoIcons.doc_text, color: AppColors.blue),
+                      leading: const AppIconBadge(
+                        icon: CupertinoIcons.doc_text,
+                        color: AppColors.blue,
+                      ),
                       title: 'Vizualizează subiectul',
                       subtitle: 'PDF oficial descărcat',
                       onTap: () {
@@ -1020,20 +1194,34 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> with SingleTi
                           context: context,
                           builder: (_) => CupertinoAlertDialog(
                             title: const Text('PDF Viewer'),
-                            content: const Text('Integrarea PDF-ului va fi disponibilă după conectarea la baza de date oficială a subiectelor.'),
-                            actions: [CupertinoDialogAction(isDefaultAction: true, onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+                            content: const Text(
+                              'Integrarea PDF-ului va fi disponibilă după conectarea la baza de date oficială a subiectelor.',
+                            ),
+                            actions: [
+                              CupertinoDialogAction(
+                                isDefaultAction: true,
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('OK'),
+                              ),
+                            ],
                           ),
                         );
                       },
                     ),
                     IOSCell(
-                      leading: const AppIconBadge(icon: CupertinoIcons.checkmark_circle_fill, color: AppColors.green),
+                      leading: const AppIconBadge(
+                        icon: CupertinoIcons.checkmark_circle_fill,
+                        color: AppColors.green,
+                      ),
                       title: 'Barem de corectare',
                       subtitle: 'Verifică răspunsurile corecte',
                       onTap: () {},
                     ),
                     IOSCell(
-                      leading: const AppIconBadge(icon: CupertinoIcons.share, color: AppColors.teal),
+                      leading: const AppIconBadge(
+                        icon: CupertinoIcons.share,
+                        color: AppColors.teal,
+                      ),
                       title: 'Distribuie subiectul',
                       subtitle: 'Trimite unui coleg',
                       onTap: () {},
@@ -1042,13 +1230,22 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> with SingleTi
                 ),
                 const Padding(
                   padding: EdgeInsets.fromLTRB(20, 20, 20, 6),
-                  child: Align(alignment: Alignment.centerLeft, child: Text('NOTE PERSONALE', style: AppText.footnoteSectionStyle)),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'NOTE PERSONALE',
+                      style: AppText.footnoteSectionStyle,
+                    ),
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Container(
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -1058,18 +1255,29 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> with SingleTi
                           onTap: () => setState(() => _editingNotes = true),
                           style: AppText.bodyStyle,
                           decoration: InputDecoration(
-                            hintText: 'Adaugă observații, formule de reținut, puncte slabe...',
+                            hintText:
+                                'Adaugă observații, formule de reținut, puncte slabe...',
                             hintStyle: AppText.subheadStyle,
                             border: InputBorder.none,
                           ),
                         ),
                         if (_editingNotes) ...[
-                          const Divider(color: AppColors.separator, height: 16, thickness: 0.5),
+                          const Divider(
+                            color: AppColors.separator,
+                            height: 16,
+                            thickness: 0.5,
+                          ),
                           Align(
                             alignment: Alignment.centerRight,
                             child: CupertinoButton(
                               padding: EdgeInsets.zero,
-                              child: const Text('Salvează', style: TextStyle(color: AppColors.blue, fontWeight: FontWeight.w600)),
+                              child: const Text(
+                                'Salvează',
+                                style: TextStyle(
+                                  color: AppColors.blue,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                               onPressed: () {
                                 HapticFeedback.selectionClick();
                                 setState(() => _editingNotes = false);
@@ -1096,7 +1304,9 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> with SingleTi
                           context: context,
                           builder: (_) => CupertinoAlertDialog(
                             title: const Text('Subiect finalizat'),
-                            content: const Text('Subiectul a fost marcat ca rezolvat și salvat în istoricul tău.'),
+                            content: const Text(
+                              'Subiectul a fost marcat ca rezolvat și salvat în istoricul tău.',
+                            ),
                             actions: [
                               CupertinoDialogAction(
                                 isDefaultAction: true,
@@ -1110,7 +1320,13 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> with SingleTi
                           ),
                         );
                       },
-                      child: const Text('Marchează ca rezolvat', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                      child: const Text(
+                        'Marchează ca rezolvat',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -1136,7 +1352,12 @@ class _TimerButton extends StatefulWidget {
   final Color color;
   final VoidCallback onTap;
 
-  const _TimerButton({required this.label, required this.icon, required this.color, required this.onTap});
+  const _TimerButton({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   State<_TimerButton> createState() => _TimerButtonState();
@@ -1169,7 +1390,14 @@ class _TimerButtonState extends State<_TimerButton> {
             children: [
               Icon(widget.icon, color: widget.color, size: 16),
               const SizedBox(width: 6),
-              Text(widget.label, style: TextStyle(color: widget.color, fontWeight: FontWeight.w600, fontSize: 15)),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  color: widget.color,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
             ],
           ),
         ),
@@ -1177,6 +1405,3 @@ class _TimerButtonState extends State<_TimerButton> {
     );
   }
 }
-
-
-

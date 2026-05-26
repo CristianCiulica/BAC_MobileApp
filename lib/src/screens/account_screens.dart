@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../models/app_data.dart';
+import '../services/auth_service.dart';
 import '../widgets/common.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -12,9 +13,15 @@ class UserProfileScreen extends StatefulWidget {
 }
 
 class _UserProfileScreenState extends State<UserProfileScreen> {
-  String _name = 'Andrei Popescu';
+  late String _name;
   String _school = 'Colegiul Național "Gheorghe Lazăr"';
   String _selectedProfile = 'Mate-Info';
+
+  @override
+  void initState() {
+    super.initState();
+    _name = AuthService.displayName;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,10 +59,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         width: 90,
                         height: 90,
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(colors: [AppColors.blue, AppColors.indigo], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                          gradient: const LinearGradient(
+                            colors: [AppColors.blue, AppColors.indigo],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                           borderRadius: BorderRadius.circular(28),
                         ),
-                        child: const Icon(CupertinoIcons.person_fill, color: Colors.white, size: 44),
+                        child: const Icon(
+                          CupertinoIcons.person_fill,
+                          color: Colors.white,
+                          size: 44,
+                        ),
                       ),
                       Positioned(
                         right: 0,
@@ -63,8 +78,16 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                         child: Container(
                           width: 28,
                           height: 28,
-                          decoration: BoxDecoration(color: AppColors.blue, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.white, width: 2)),
-                          child: const Icon(CupertinoIcons.pencil, color: Colors.white, size: 14),
+                          decoration: BoxDecoration(
+                            color: AppColors.blue,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(
+                            CupertinoIcons.pencil,
+                            color: Colors.white,
+                            size: 14,
+                          ),
                         ),
                       ),
                     ],
@@ -73,13 +96,25 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                 const SizedBox(height: 12),
                 Text(_name, style: AppText.titleStyle),
                 const SizedBox(height: 4),
-                Text(_school, style: AppText.subheadStyle, textAlign: TextAlign.center),
+                Text(
+                  _school,
+                  style: AppText.subheadStyle,
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 24),
                 IOSSection(
                   header: 'Informații personale',
                   children: [
-                    _EditableCell(label: 'Nume', value: _name, onChanged: (v) => setState(() => _name = v)),
-                    _EditableCell(label: 'Școală', value: _school, onChanged: (v) => setState(() => _school = v)),
+                    _EditableCell(
+                      label: 'Nume',
+                      value: _name,
+                      onChanged: (v) => setState(() => _name = v),
+                    ),
+                    _EditableCell(
+                      label: 'Școală',
+                      value: _school,
+                      onChanged: (v) => setState(() => _school = v),
+                    ),
                   ],
                 ),
                 IOSSection(
@@ -87,14 +122,29 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                   children: [
                     for (final profile in appProfiles)
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         child: Row(
                           children: [
-                            AppIconBadge(icon: profile.icon, color: profile.accentColor),
+                            AppIconBadge(
+                              icon: profile.icon,
+                              color: profile.accentColor,
+                            ),
                             const SizedBox(width: 14),
-                            Expanded(child: Text(profile.name, style: AppText.bodyStyle)),
+                            Expanded(
+                              child: Text(
+                                profile.name,
+                                style: AppText.bodyStyle,
+                              ),
+                            ),
                             if (_selectedProfile == profile.name)
-                              const Icon(CupertinoIcons.checkmark_alt, color: AppColors.blue, size: 20),
+                              const Icon(
+                                CupertinoIcons.checkmark_alt,
+                                color: AppColors.blue,
+                                size: 20,
+                              ),
                           ],
                         ),
                       ),
@@ -115,7 +165,11 @@ class _EditableCell extends StatelessWidget {
   final String value;
   final ValueChanged<String> onChanged;
 
-  const _EditableCell({required this.label, required this.value, required this.onChanged});
+  const _EditableCell({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +179,11 @@ class _EditableCell extends StatelessWidget {
         children: [
           SizedBox(width: 90, child: Text(label, style: AppText.subheadStyle)),
           Expanded(
-            child: Text(value, style: AppText.bodyStyle, overflow: TextOverflow.ellipsis),
+            child: Text(
+              value,
+              style: AppText.bodyStyle,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           const Icon(CupertinoIcons.pencil, color: AppColors.blue, size: 16),
         ],
@@ -193,13 +251,25 @@ class ProgressScreen extends StatelessWidget {
                       for (final stat in stats)
                         Container(
                           padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14)),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(stat.$1, style: AppText.captionStyle),
-                              Text(stat.$2, style: TextStyle(fontFamily: '.SF Pro Display', fontSize: 24, fontWeight: FontWeight.w700, color: stat.$3, letterSpacing: -0.5)),
+                              Text(
+                                stat.$2,
+                                style: TextStyle(
+                                  fontFamily: '.SF Pro Display',
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w700,
+                                  color: stat.$3,
+                                  letterSpacing: -0.5,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -211,14 +281,25 @@ class ProgressScreen extends StatelessWidget {
                   children: [
                     for (final s in subjects)
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                         child: Column(
                           children: [
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(s.$1, style: AppText.bodyStyle),
-                                Text('${(s.$2 * 100).toInt()}%', style: TextStyle(fontFamily: '.SF Pro Text', fontSize: 14, fontWeight: FontWeight.w600, color: s.$3)),
+                                Text(
+                                  '${(s.$2 * 100).toInt()}%',
+                                  style: TextStyle(
+                                    fontFamily: '.SF Pro Text',
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: s.$3,
+                                  ),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 8),
@@ -250,11 +331,29 @@ class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
 
   static const _history = [
-    ('Matematică (M1)', '2025 · Sesiunea Iunie', '2h 58m', '8.5', AppColors.indigo),
-    ('Limba Română', '2024 · Simulare Națională', '3h 00m', '7.0', AppColors.blue),
+    (
+      'Matematică (M1)',
+      '2025 · Sesiunea Iunie',
+      '2h 58m',
+      '8.5',
+      AppColors.indigo,
+    ),
+    (
+      'Limba Română',
+      '2024 · Simulare Națională',
+      '3h 00m',
+      '7.0',
+      AppColors.blue,
+    ),
     ('Informatică', '2024 · Sesiunea Iunie', '1h 45m', '9.2', AppColors.teal),
     ('Fizică', '2023 · Sesiunea Aug/Sept', '2h 30m', '6.5', AppColors.orange),
-    ('Matematică (M1)', '2023 · Simulare Națională', '3h 00m', '7.8', AppColors.indigo),
+    (
+      'Matematică (M1)',
+      '2023 · Simulare Națională',
+      '3h 00m',
+      '7.8',
+      AppColors.indigo,
+    ),
   ];
 
   @override
@@ -291,10 +390,20 @@ class HistoryScreen extends StatelessWidget {
                   children: [
                     for (final h in _history)
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         child: Row(
                           children: [
-                            Container(width: 4, height: 44, decoration: BoxDecoration(color: h.$5, borderRadius: BorderRadius.circular(2))),
+                            Container(
+                              width: 4,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: h.$5,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -304,19 +413,32 @@ class HistoryScreen extends StatelessWidget {
                                   const SizedBox(height: 2),
                                   Text(h.$2, style: AppText.subheadStyle),
                                   const SizedBox(height: 2),
-                                  Text('Durata: ${h.$3}', style: AppText.captionStyle),
+                                  Text(
+                                    'Durata: ${h.$3}',
+                                    style: AppText.captionStyle,
+                                  ),
                                 ],
                               ),
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
                               decoration: BoxDecoration(
-                                color: _gradeColor(double.parse(h.$4)).withAlpha(31),
+                                color: _gradeColor(
+                                  double.parse(h.$4),
+                                ).withAlpha(31),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 h.$4,
-                                style: TextStyle(fontFamily: '.SF Pro Display', fontSize: 17, fontWeight: FontWeight.w700, color: _gradeColor(double.parse(h.$4))),
+                                style: TextStyle(
+                                  fontFamily: '.SF Pro Display',
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                  color: _gradeColor(double.parse(h.$4)),
+                                ),
                               ),
                             ),
                           ],
@@ -344,10 +466,12 @@ class NotificationsSettingsScreen extends StatefulWidget {
   const NotificationsSettingsScreen({super.key});
 
   @override
-  State<NotificationsSettingsScreen> createState() => _NotificationsSettingsScreenState();
+  State<NotificationsSettingsScreen> createState() =>
+      _NotificationsSettingsScreenState();
 }
 
-class _NotificationsSettingsScreenState extends State<NotificationsSettingsScreen> {
+class _NotificationsSettingsScreenState
+    extends State<NotificationsSettingsScreen> {
   bool _dailyReminder = true;
   bool _examAlerts = true;
   bool _streakReminder = false;
@@ -385,16 +509,40 @@ class _NotificationsSettingsScreenState extends State<NotificationsSettingsScree
                 IOSSection(
                   header: 'Alerte studiu',
                   children: [
-                    _SwitchCell(icon: CupertinoIcons.bell_fill, color: AppColors.red, label: 'Reamintire zilnică', value: _dailyReminder, onChanged: (v) => setState(() => _dailyReminder = v)),
-                    _SwitchCell(icon: CupertinoIcons.flame_fill, color: AppColors.orange, label: 'Streak zilnic', value: _streakReminder, onChanged: (v) => setState(() => _streakReminder = v)),
+                    _SwitchCell(
+                      icon: CupertinoIcons.bell_fill,
+                      color: AppColors.red,
+                      label: 'Reamintire zilnică',
+                      value: _dailyReminder,
+                      onChanged: (v) => setState(() => _dailyReminder = v),
+                    ),
+                    _SwitchCell(
+                      icon: CupertinoIcons.flame_fill,
+                      color: AppColors.orange,
+                      label: 'Streak zilnic',
+                      value: _streakReminder,
+                      onChanged: (v) => setState(() => _streakReminder = v),
+                    ),
                   ],
                 ),
                 IOSSection(
                   header: 'Examen',
                   footer: 'Vei fi notificat cu 7 zile înainte de sesiune.',
                   children: [
-                    _SwitchCell(icon: CupertinoIcons.calendar_badge_plus, color: AppColors.blue, label: 'Date sesiuni BAC', value: _examAlerts, onChanged: (v) => setState(() => _examAlerts = v)),
-                    _SwitchCell(icon: CupertinoIcons.chart_bar_fill, color: AppColors.green, label: 'Actualizări note', value: _gradeUpdates, onChanged: (v) => setState(() => _gradeUpdates = v)),
+                    _SwitchCell(
+                      icon: CupertinoIcons.calendar_badge_plus,
+                      color: AppColors.blue,
+                      label: 'Date sesiuni BAC',
+                      value: _examAlerts,
+                      onChanged: (v) => setState(() => _examAlerts = v),
+                    ),
+                    _SwitchCell(
+                      icon: CupertinoIcons.chart_bar_fill,
+                      color: AppColors.green,
+                      label: 'Actualizări note',
+                      value: _gradeUpdates,
+                      onChanged: (v) => setState(() => _gradeUpdates = v),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 40),
@@ -414,7 +562,13 @@ class _SwitchCell extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
 
-  const _SwitchCell({required this.icon, required this.color, required this.label, required this.value, required this.onChanged});
+  const _SwitchCell({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -425,7 +579,11 @@ class _SwitchCell extends StatelessWidget {
           AppIconBadge(icon: icon, color: color),
           const SizedBox(width: 14),
           Expanded(child: Text(label, style: AppText.bodyStyle)),
-          CupertinoSwitch(value: value, onChanged: onChanged, activeTrackColor: AppColors.blue),
+          CupertinoSwitch(
+            value: value,
+            onChanged: onChanged,
+            activeTrackColor: AppColors.blue,
+          ),
         ],
       ),
     );
@@ -476,22 +634,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 IOSSection(
                   header: 'Aspect',
                   children: [
-                    _SwitchCell(icon: CupertinoIcons.moon_fill, color: AppColors.indigo, label: 'Mod întunecat', value: _darkMode, onChanged: (v) => setState(() => _darkMode = v)),
-                    _SwitchCell(icon: CupertinoIcons.circle_grid_hex_fill, color: AppColors.orange, label: 'Feedback haptic', value: _haptics, onChanged: (v) => setState(() => _haptics = v)),
+                    _SwitchCell(
+                      icon: CupertinoIcons.moon_fill,
+                      color: AppColors.indigo,
+                      label: 'Mod întunecat',
+                      value: _darkMode,
+                      onChanged: (v) => setState(() => _darkMode = v),
+                    ),
+                    _SwitchCell(
+                      icon: CupertinoIcons.circle_grid_hex_fill,
+                      color: AppColors.orange,
+                      label: 'Feedback haptic',
+                      value: _haptics,
+                      onChanged: (v) => setState(() => _haptics = v),
+                    ),
                   ],
                 ),
                 IOSSection(
                   header: 'Date',
                   children: [
-                    _SwitchCell(icon: CupertinoIcons.cloud_fill, color: AppColors.teal, label: 'Salvare automată', value: _autoSave, onChanged: (v) => setState(() => _autoSave = v)),
+                    _SwitchCell(
+                      icon: CupertinoIcons.cloud_fill,
+                      color: AppColors.teal,
+                      label: 'Salvare automată',
+                      value: _autoSave,
+                      onChanged: (v) => setState(() => _autoSave = v),
+                    ),
                     IOSCell(
-                      leading: const AppIconBadge(icon: CupertinoIcons.arrow_down_circle_fill, color: AppColors.blue),
+                      leading: const AppIconBadge(
+                        icon: CupertinoIcons.arrow_down_circle_fill,
+                        color: AppColors.blue,
+                      ),
                       title: 'Exportă datele mele',
                       subtitle: 'Descarcă toate subiectele și notele',
                       onTap: () {},
                     ),
                     IOSCell(
-                      leading: const AppIconBadge(icon: CupertinoIcons.trash_fill, color: AppColors.red),
+                      leading: const AppIconBadge(
+                        icon: CupertinoIcons.trash_fill,
+                        color: AppColors.red,
+                      ),
                       title: 'Șterge tot istoricul',
                       subtitle: 'Acțiune ireversibilă',
                       onTap: () {
@@ -499,10 +681,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           context: context,
                           builder: (_) => CupertinoAlertDialog(
                             title: const Text('Șterge istoricul?'),
-                            content: const Text('Toate sesiunile și notele vor fi șterse permanent.'),
+                            content: const Text(
+                              'Toate sesiunile și notele vor fi șterse permanent.',
+                            ),
                             actions: [
-                              CupertinoDialogAction(onPressed: () => Navigator.pop(context), child: const Text('Anulează')),
-                              CupertinoDialogAction(isDestructiveAction: true, onPressed: () => Navigator.pop(context), child: const Text('Șterge')),
+                              CupertinoDialogAction(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Anulează'),
+                              ),
+                              CupertinoDialogAction(
+                                isDestructiveAction: true,
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text('Șterge'),
+                              ),
                             ],
                           ),
                         );
@@ -556,29 +747,83 @@ class AboutScreen extends StatelessWidget {
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [AppColors.blue, AppColors.indigo], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                    gradient: const LinearGradient(
+                      colors: [AppColors.blue, AppColors.indigo],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
                     borderRadius: BorderRadius.circular(22),
-                    boxShadow: [BoxShadow(color: AppColors.blue.withAlpha(77), blurRadius: 20, offset: const Offset(0, 8))],
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.blue.withAlpha(77),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
-                  child: const Icon(CupertinoIcons.book_fill, color: Colors.white, size: 38),
+                  child: const Icon(
+                    CupertinoIcons.book_fill,
+                    color: Colors.white,
+                    size: 38,
+                  ),
                 ),
                 const SizedBox(height: 14),
-                const Text('EduBAC', style: TextStyle(fontFamily: '.SF Pro Display', fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.label, letterSpacing: -0.5)),
+                const Text(
+                  'EduBAC',
+                  style: TextStyle(
+                    fontFamily: '.SF Pro Display',
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.label,
+                    letterSpacing: -0.5,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 const Text('Versiunea 1.0.0', style: AppText.subheadStyle),
                 const SizedBox(height: 32),
                 IOSSection(
                   header: 'Aplicație',
                   children: [
-                    IOSCell(leading: const AppIconBadge(icon: CupertinoIcons.doc_text, color: AppColors.blue), title: 'Termeni și condiții', onTap: () {}),
-                    IOSCell(leading: const AppIconBadge(icon: CupertinoIcons.lock_shield_fill, color: AppColors.green), title: 'Politica de confidențialitate', onTap: () {}),
-                    IOSCell(leading: const AppIconBadge(icon: CupertinoIcons.star_fill, color: AppColors.orange), title: 'Evaluează pe App Store', onTap: () {}),
+                    IOSCell(
+                      leading: const AppIconBadge(
+                        icon: CupertinoIcons.doc_text,
+                        color: AppColors.blue,
+                      ),
+                      title: 'Termeni și condiții',
+                      onTap: () {},
+                    ),
+                    IOSCell(
+                      leading: const AppIconBadge(
+                        icon: CupertinoIcons.lock_shield_fill,
+                        color: AppColors.green,
+                      ),
+                      title: 'Politica de confidențialitate',
+                      onTap: () {},
+                    ),
+                    IOSCell(
+                      leading: const AppIconBadge(
+                        icon: CupertinoIcons.star_fill,
+                        color: AppColors.orange,
+                      ),
+                      title: 'Evaluează pe App Store',
+                      onTap: () {},
+                    ),
                   ],
                 ),
                 const SizedBox(height: 40),
-                Text('Creat cu drag pentru elevii din România.', style: AppText.captionStyle.copyWith(color: AppColors.tertiaryLabel)),
+                Text(
+                  'Creat cu drag pentru elevii din România.',
+                  style: AppText.captionStyle.copyWith(
+                    color: AppColors.tertiaryLabel,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                Text('© 2025 EduBAC', style: AppText.captionStyle.copyWith(color: AppColors.tertiaryLabel)),
+                Text(
+                  '© 2025 EduBAC',
+                  style: AppText.captionStyle.copyWith(
+                    color: AppColors.tertiaryLabel,
+                  ),
+                ),
                 const SizedBox(height: 40),
               ],
             ),
@@ -588,5 +833,3 @@ class AboutScreen extends StatelessWidget {
     );
   }
 }
-
-

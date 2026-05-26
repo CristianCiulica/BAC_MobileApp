@@ -158,11 +158,13 @@ class _LoginScreenState extends State<LoginScreen>
       body: Stack(
         children: [
           Positioned(
-            top: -80, left: -60,
+            top: -80,
+            left: -60,
             child: _BackgroundCircle(size: 300, opacity: 0.06),
           ),
           Positioned(
-            top: 60, right: -80,
+            top: 60,
+            right: -80,
             child: _BackgroundCircle(size: 220, opacity: 0.04),
           ),
           SafeArea(
@@ -172,7 +174,10 @@ class _LoginScreenState extends State<LoginScreen>
                 position: _slideAnim,
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 32,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -180,20 +185,25 @@ class _LoginScreenState extends State<LoginScreen>
                       const Center(child: _AppIcon()),
                       const SizedBox(height: 18),
                       const Center(
-                        child: Text('BacPro',
+                        child: Text(
+                          'BacPro',
                           style: TextStyle(
                             fontFamily: '.SF Pro Display',
-                            fontSize: 30, fontWeight: FontWeight.w700,
-                            color: AppColors.navy, letterSpacing: -0.6,
+                            fontSize: 30,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.navy,
+                            letterSpacing: -0.6,
                           ),
                         ),
                       ),
                       const SizedBox(height: 6),
                       const Center(
-                        child: Text('Pregătire Bacalaureat',
+                        child: Text(
+                          'Pregătire Bacalaureat',
                           style: TextStyle(
                             fontFamily: '.SF Pro Text',
-                            fontSize: 14, color: Color(0xFF6C6C70),
+                            fontSize: 14,
+                            color: Color(0xFF6C6C70),
                           ),
                         ),
                       ),
@@ -207,7 +217,8 @@ class _LoginScreenState extends State<LoginScreen>
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withAlpha(10),
-                              blurRadius: 24, offset: const Offset(0, 8),
+                              blurRadius: 24,
+                              offset: const Offset(0, 8),
                             ),
                           ],
                         ),
@@ -216,34 +227,44 @@ class _LoginScreenState extends State<LoginScreen>
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             _buildField(
-                              label: 'EMAIL', controller: _emailController,
+                              label: 'EMAIL',
+                              controller: _emailController,
                               hint: 'adresa@email.ro',
                               keyboardType: TextInputType.emailAddress,
                               prefixIcon: CupertinoIcons.mail,
                             ),
                             const SizedBox(height: 14),
                             _buildField(
-                              label: 'PAROLĂ', controller: _passwordController,
-                              hint: '••••••••', obscureText: _obscurePassword,
+                              label: 'PAROLĂ',
+                              controller: _passwordController,
+                              hint: '••••••••',
+                              obscureText: _obscurePassword,
                               prefixIcon: CupertinoIcons.lock,
                               suffixIcon: _obscurePassword
                                   ? CupertinoIcons.eye
                                   : CupertinoIcons.eye_slash,
                               onSuffixTap: () {
                                 HapticFeedback.selectionClick();
-                                setState(() => _obscurePassword = !_obscurePassword);
+                                setState(
+                                  () => _obscurePassword = !_obscurePassword,
+                                );
                               },
                             ),
                             Align(
                               alignment: Alignment.centerRight,
                               child: CupertinoButton(
-                                padding: const EdgeInsets.only(top: 8, bottom: 4),
+                                padding: const EdgeInsets.only(
+                                  top: 8,
+                                  bottom: 4,
+                                ),
                                 minSize: 0,
                                 onPressed: _resetPassword,
-                                child: const Text('Ai uitat parola?',
+                                child: const Text(
+                                  'Ai uitat parola?',
                                   style: TextStyle(
                                     fontFamily: '.SF Pro Text',
-                                    fontSize: 13, fontWeight: FontWeight.w500,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
                                     color: AppColors.navy,
                                   ),
                                 ),
@@ -258,14 +279,18 @@ class _LoginScreenState extends State<LoginScreen>
                                 padding: EdgeInsets.zero,
                                 onPressed: _isLoading ? null : _signIn,
                                 child: _isLoading
-                                    ? const CupertinoActivityIndicator(color: Colors.white)
-                                    : const Text('Conectează-te',
-                                  style: TextStyle(
-                                    fontFamily: '.SF Pro Text',
-                                    fontSize: 16, fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
+                                    ? const CupertinoActivityIndicator(
+                                        color: Colors.white,
+                                      )
+                                    : const Text(
+                                        'Conectează-te',
+                                        style: TextStyle(
+                                          fontFamily: '.SF Pro Text',
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
                               ),
                             ),
                           ],
@@ -276,23 +301,37 @@ class _LoginScreenState extends State<LoginScreen>
 
                       Row(
                         children: [
-                          Expanded(child: Divider(color: Colors.black.withAlpha(30), thickness: 0.5)),
+                          Expanded(
+                            child: Divider(
+                              color: Colors.black.withAlpha(30),
+                              thickness: 0.5,
+                            ),
+                          ),
                           const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 14),
-                            child: Text('Sau continuă cu',
+                            child: Text(
+                              'Sau continuă cu',
                               style: TextStyle(
                                 fontFamily: '.SF Pro Text',
-                                fontSize: 12, color: Color(0xFF8E8E93),
+                                fontSize: 12,
+                                color: Color(0xFF8E8E93),
                               ),
                             ),
                           ),
-                          Expanded(child: Divider(color: Colors.black.withAlpha(30), thickness: 0.5)),
+                          Expanded(
+                            child: Divider(
+                              color: Colors.black.withAlpha(30),
+                              thickness: 0.5,
+                            ),
+                          ),
                         ],
                       ),
 
                       const SizedBox(height: 20),
 
-                      _GoogleSignInButton(onTap: _isLoading ? null : _signInWithGoogle),
+                      _GoogleSignInButton(
+                        onTap: _isLoading ? null : _signInWithGoogle,
+                      ),
 
                       const SizedBox(height: 36),
 
@@ -300,15 +339,19 @@ class _LoginScreenState extends State<LoginScreen>
                         child: GestureDetector(
                           onTap: () {
                             HapticFeedback.selectionClick();
-                            Navigator.push(context,
-                              CupertinoPageRoute(builder: (_) => const RegisterScreen()),
+                            Navigator.push(
+                              context,
+                              CupertinoPageRoute(
+                                builder: (_) => const RegisterScreen(),
+                              ),
                             );
                           },
                           child: RichText(
                             text: const TextSpan(
                               style: TextStyle(
                                 fontFamily: '.SF Pro Text',
-                                fontSize: 14, color: Color(0xFF6C6C70),
+                                fontSize: 14,
+                                color: Color(0xFF6C6C70),
                               ),
                               children: [
                                 TextSpan(text: 'Nu ai cont? '),
@@ -349,10 +392,13 @@ class _LoginScreenState extends State<LoginScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
+        Text(
+          label,
           style: const TextStyle(
-            fontFamily: '.SF Pro Text', fontSize: 11,
-            fontWeight: FontWeight.w600, color: Color(0xFF8E8E93),
+            fontFamily: '.SF Pro Text',
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF8E8E93),
             letterSpacing: 0.5,
           ),
         ),
@@ -368,7 +414,11 @@ class _LoginScreenState extends State<LoginScreen>
               if (prefixIcon != null)
                 Padding(
                   padding: const EdgeInsets.only(left: 12, right: 8),
-                  child: Icon(prefixIcon, size: 17, color: const Color(0xFF8E8E93)),
+                  child: Icon(
+                    prefixIcon,
+                    size: 17,
+                    color: const Color(0xFF8E8E93),
+                  ),
                 ),
               Expanded(
                 child: TextField(
@@ -376,12 +426,16 @@ class _LoginScreenState extends State<LoginScreen>
                   obscureText: obscureText,
                   keyboardType: keyboardType,
                   style: const TextStyle(
-                    fontFamily: '.SF Pro Text', fontSize: 15,
+                    fontFamily: '.SF Pro Text',
+                    fontSize: 15,
                     color: Color(0xFF1C1C1E),
                   ),
                   decoration: InputDecoration(
                     hintText: hint,
-                    hintStyle: const TextStyle(color: Color(0xFFC7C7CC), fontSize: 15),
+                    hintStyle: const TextStyle(
+                      color: Color(0xFFC7C7CC),
+                      fontSize: 15,
+                    ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
                     isDense: true,
@@ -393,7 +447,11 @@ class _LoginScreenState extends State<LoginScreen>
                   onTap: onSuffixTap,
                   child: Padding(
                     padding: const EdgeInsets.only(left: 8, right: 12),
-                    child: Icon(suffixIcon, size: 17, color: const Color(0xFF8E8E93)),
+                    child: Icon(
+                      suffixIcon,
+                      size: 17,
+                      color: const Color(0xFF8E8E93),
+                    ),
                   ),
                 ),
             ],
@@ -433,11 +491,13 @@ class _RegisterScreenState extends State<RegisterScreen>
   void initState() {
     super.initState();
     _animController = AnimationController(
-      vsync: this, duration: const Duration(milliseconds: 500),
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
     );
     _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
     _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.04), end: Offset.zero,
+      begin: const Offset(0, 0.04),
+      end: Offset.zero,
     ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
     _animController.forward();
   }
@@ -473,8 +533,8 @@ class _RegisterScreenState extends State<RegisterScreen>
 
     setState(() => _isLoading = true);
     try {
-      final cred = await AuthService.registerWithEmail(email, password);
-      await cred.user?.updateDisplayName(name);
+      await AuthService.registerWithEmail(email, password);
+      await AuthService.updateDisplayName(name);
       // StreamBuilder navighează automat la MainShell
     } on FirebaseAuthException catch (e) {
       _showError(_friendlyError(e.code));
@@ -523,7 +583,8 @@ class _RegisterScreenState extends State<RegisterScreen>
       body: Stack(
         children: [
           Positioned(
-            top: -80, left: -60,
+            top: -80,
+            left: -60,
             child: _BackgroundCircle(size: 300, opacity: 0.06),
           ),
           SafeArea(
@@ -541,13 +602,18 @@ class _RegisterScreenState extends State<RegisterScreen>
                           CupertinoButton(
                             padding: EdgeInsets.zero,
                             onPressed: () => Navigator.pop(context),
-                            child: const Icon(CupertinoIcons.back, color: AppColors.navy),
+                            child: const Icon(
+                              CupertinoIcons.back,
+                              color: AppColors.navy,
+                            ),
                           ),
                           const Expanded(
-                            child: Text('Cont nou',
+                            child: Text(
+                              'Cont nou',
                               style: TextStyle(
                                 fontFamily: '.SF Pro Display',
-                                fontSize: 17, fontWeight: FontWeight.w600,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w600,
                                 color: AppColors.label,
                               ),
                               textAlign: TextAlign.center,
@@ -561,7 +627,10 @@ class _RegisterScreenState extends State<RegisterScreen>
                     Expanded(
                       child: SingleChildScrollView(
                         physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -569,20 +638,25 @@ class _RegisterScreenState extends State<RegisterScreen>
                             const Center(child: _AppIcon()),
                             const SizedBox(height: 16),
                             const Center(
-                              child: Text('Creează contul tău',
+                              child: Text(
+                                'Creează contul tău',
                                 style: TextStyle(
                                   fontFamily: '.SF Pro Display',
-                                  fontSize: 24, fontWeight: FontWeight.w700,
-                                  color: AppColors.navy, letterSpacing: -0.5,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.navy,
+                                  letterSpacing: -0.5,
                                 ),
                               ),
                             ),
                             const SizedBox(height: 6),
                             const Center(
-                              child: Text('Gratuit · Fără card · Acces instant',
+                              child: Text(
+                                'Gratuit · Fără card · Acces instant',
                                 style: TextStyle(
                                   fontFamily: '.SF Pro Text',
-                                  fontSize: 13, color: Color(0xFF6C6C70),
+                                  fontSize: 13,
+                                  color: Color(0xFF6C6C70),
                                 ),
                               ),
                             ),
@@ -596,11 +670,17 @@ class _RegisterScreenState extends State<RegisterScreen>
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withAlpha(10),
-                                    blurRadius: 24, offset: const Offset(0, 8),
+                                    blurRadius: 24,
+                                    offset: const Offset(0, 8),
                                   ),
                                 ],
                               ),
-                              padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+                              padding: const EdgeInsets.fromLTRB(
+                                20,
+                                24,
+                                20,
+                                24,
+                              ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
@@ -609,7 +689,8 @@ class _RegisterScreenState extends State<RegisterScreen>
                                     controller: _nameController,
                                     hint: 'Ion Popescu',
                                     prefixIcon: CupertinoIcons.person,
-                                    textCapitalization: TextCapitalization.words,
+                                    textCapitalization:
+                                        TextCapitalization.words,
                                   ),
                                   const SizedBox(height: 14),
                                   _buildField(
@@ -631,7 +712,10 @@ class _RegisterScreenState extends State<RegisterScreen>
                                         : CupertinoIcons.eye_slash,
                                     onSuffixTap: () {
                                       HapticFeedback.selectionClick();
-                                      setState(() => _obscurePassword = !_obscurePassword);
+                                      setState(
+                                        () => _obscurePassword =
+                                            !_obscurePassword,
+                                      );
                                     },
                                   ),
                                   const SizedBox(height: 14),
@@ -646,7 +730,10 @@ class _RegisterScreenState extends State<RegisterScreen>
                                         : CupertinoIcons.eye_slash,
                                     onSuffixTap: () {
                                       HapticFeedback.selectionClick();
-                                      setState(() => _obscureConfirm = !_obscureConfirm);
+                                      setState(
+                                        () =>
+                                            _obscureConfirm = !_obscureConfirm,
+                                      );
                                     },
                                   ),
                                   const SizedBox(height: 24),
@@ -658,14 +745,18 @@ class _RegisterScreenState extends State<RegisterScreen>
                                       padding: EdgeInsets.zero,
                                       onPressed: _isLoading ? null : _register,
                                       child: _isLoading
-                                          ? const CupertinoActivityIndicator(color: Colors.white)
-                                          : const Text('Creează contul',
-                                        style: TextStyle(
-                                          fontFamily: '.SF Pro Text',
-                                          fontSize: 16, fontWeight: FontWeight.w600,
-                                          color: Colors.white,
-                                        ),
-                                      ),
+                                          ? const CupertinoActivityIndicator(
+                                              color: Colors.white,
+                                            )
+                                          : const Text(
+                                              'Creează contul',
+                                              style: TextStyle(
+                                                fontFamily: '.SF Pro Text',
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.white,
+                                              ),
+                                            ),
                                     ),
                                   ),
                                 ],
@@ -676,32 +767,50 @@ class _RegisterScreenState extends State<RegisterScreen>
 
                             Row(
                               children: [
-                                Expanded(child: Divider(color: Colors.black.withAlpha(30), thickness: 0.5)),
+                                Expanded(
+                                  child: Divider(
+                                    color: Colors.black.withAlpha(30),
+                                    thickness: 0.5,
+                                  ),
+                                ),
                                 const Padding(
                                   padding: EdgeInsets.symmetric(horizontal: 14),
-                                  child: Text('Sau înregistrează-te cu',
+                                  child: Text(
+                                    'Sau înregistrează-te cu',
                                     style: TextStyle(
                                       fontFamily: '.SF Pro Text',
-                                      fontSize: 12, color: Color(0xFF8E8E93),
+                                      fontSize: 12,
+                                      color: Color(0xFF8E8E93),
                                     ),
                                   ),
                                 ),
-                                Expanded(child: Divider(color: Colors.black.withAlpha(30), thickness: 0.5)),
+                                Expanded(
+                                  child: Divider(
+                                    color: Colors.black.withAlpha(30),
+                                    thickness: 0.5,
+                                  ),
+                                ),
                               ],
                             ),
 
                             const SizedBox(height: 20),
 
                             _GoogleSignInButton(
-                              onTap: _isLoading ? null : () async {
-                                setState(() => _isLoading = true);
-                                try {
-                                  await AuthService.signInWithGoogle();
-                                } catch (e) {
-                                  _showError('Google sign-in eșuat. Încearcă din nou.');
-                                  if (mounted) setState(() => _isLoading = false);
-                                }
-                              },
+                              onTap: _isLoading
+                                  ? null
+                                  : () async {
+                                      setState(() => _isLoading = true);
+                                      try {
+                                        await AuthService.signInWithGoogle();
+                                      } catch (e) {
+                                        _showError(
+                                          'Google sign-in eșuat. Încearcă din nou.',
+                                        );
+                                        if (mounted) {
+                                          setState(() => _isLoading = false);
+                                        }
+                                      }
+                                    },
                             ),
 
                             const SizedBox(height: 32),
@@ -716,7 +825,8 @@ class _RegisterScreenState extends State<RegisterScreen>
                                   text: const TextSpan(
                                     style: TextStyle(
                                       fontFamily: '.SF Pro Text',
-                                      fontSize: 14, color: Color(0xFF6C6C70),
+                                      fontSize: 14,
+                                      color: Color(0xFF6C6C70),
                                     ),
                                     children: [
                                       TextSpan(text: 'Ai deja cont? '),
@@ -761,10 +871,13 @@ class _RegisterScreenState extends State<RegisterScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
+        Text(
+          label,
           style: const TextStyle(
-            fontFamily: '.SF Pro Text', fontSize: 11,
-            fontWeight: FontWeight.w600, color: Color(0xFF8E8E93),
+            fontFamily: '.SF Pro Text',
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF8E8E93),
             letterSpacing: 0.5,
           ),
         ),
@@ -780,7 +893,11 @@ class _RegisterScreenState extends State<RegisterScreen>
               if (prefixIcon != null)
                 Padding(
                   padding: const EdgeInsets.only(left: 12, right: 8),
-                  child: Icon(prefixIcon, size: 17, color: const Color(0xFF8E8E93)),
+                  child: Icon(
+                    prefixIcon,
+                    size: 17,
+                    color: const Color(0xFF8E8E93),
+                  ),
                 ),
               Expanded(
                 child: TextField(
@@ -789,12 +906,16 @@ class _RegisterScreenState extends State<RegisterScreen>
                   keyboardType: keyboardType,
                   textCapitalization: textCapitalization,
                   style: const TextStyle(
-                    fontFamily: '.SF Pro Text', fontSize: 15,
+                    fontFamily: '.SF Pro Text',
+                    fontSize: 15,
                     color: Color(0xFF1C1C1E),
                   ),
                   decoration: InputDecoration(
                     hintText: hint,
-                    hintStyle: const TextStyle(color: Color(0xFFC7C7CC), fontSize: 15),
+                    hintStyle: const TextStyle(
+                      color: Color(0xFFC7C7CC),
+                      fontSize: 15,
+                    ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
                     isDense: true,
@@ -806,7 +927,11 @@ class _RegisterScreenState extends State<RegisterScreen>
                   onTap: onSuffixTap,
                   child: Padding(
                     padding: const EdgeInsets.only(left: 8, right: 12),
-                    child: Icon(suffixIcon, size: 17, color: const Color(0xFF8E8E93)),
+                    child: Icon(
+                      suffixIcon,
+                      size: 17,
+                      color: const Color(0xFF8E8E93),
+                    ),
                   ),
                 ),
             ],
@@ -828,10 +953,12 @@ class _GoogleSignInButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap != null ? () {
-        HapticFeedback.lightImpact();
-        onTap!();
-      } : null,
+      onTap: onTap != null
+          ? () {
+              HapticFeedback.lightImpact();
+              onTap!();
+            }
+          : null,
       child: Container(
         height: 50,
         decoration: BoxDecoration(
@@ -840,7 +967,8 @@ class _GoogleSignInButton extends StatelessWidget {
           boxShadow: [
             BoxShadow(
               color: Colors.black.withAlpha(10),
-              blurRadius: 12, offset: const Offset(0, 4),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -848,14 +976,17 @@ class _GoogleSignInButton extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             SizedBox(
-              width: 20, height: 20,
+              width: 20,
+              height: 20,
               child: CustomPaint(painter: _GoogleLogoPainter()),
             ),
             const SizedBox(width: 10),
-            const Text('Continuă cu Google',
+            const Text(
+              'Continuă cu Google',
               style: TextStyle(
                 fontFamily: '.SF Pro Text',
-                fontSize: 15, fontWeight: FontWeight.w500,
+                fontSize: 15,
+                fontWeight: FontWeight.w500,
                 color: Color(0xFF1C1C1E),
               ),
             ),
@@ -879,8 +1010,10 @@ class _GoogleLogoPainter extends CustomPainter {
       text: const TextSpan(
         text: 'G',
         style: TextStyle(
-          color: Color(0xFF4285F4), fontSize: 14,
-          fontWeight: FontWeight.w700, fontFamily: '.SF Pro Display',
+          color: Color(0xFF4285F4),
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          fontFamily: '.SF Pro Display',
         ),
       ),
       textDirection: TextDirection.ltr,
@@ -888,7 +1021,10 @@ class _GoogleLogoPainter extends CustomPainter {
     textPainter.layout();
     textPainter.paint(
       canvas,
-      Offset(center.dx - textPainter.width / 2, center.dy - textPainter.height / 2),
+      Offset(
+        center.dx - textPainter.width / 2,
+        center.dy - textPainter.height / 2,
+      ),
     );
   }
 
@@ -902,14 +1038,16 @@ class _AppIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 80, height: 80,
+      width: 80,
+      height: 80,
       decoration: BoxDecoration(
         color: AppColors.navy,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: AppColors.navy.withAlpha(70),
-            blurRadius: 20, offset: const Offset(0, 8),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -917,17 +1055,27 @@ class _AppIcon extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           Positioned(
-            bottom: 6, left: 10,
-            child: Text('B',
+            bottom: 6,
+            left: 10,
+            child: Text(
+              'B',
               style: TextStyle(
-                fontSize: 52, fontWeight: FontWeight.w900,
-                color: Colors.white, height: 1.0, letterSpacing: -2,
+                fontSize: 52,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                height: 1.0,
+                letterSpacing: -2,
               ),
             ),
           ),
           Positioned(
-            top: 8, right: 8,
-            child: Icon(CupertinoIcons.doc_text, size: 28, color: Colors.white70),
+            top: 8,
+            right: 8,
+            child: Icon(
+              CupertinoIcons.doc_text,
+              size: 28,
+              color: Colors.white70,
+            ),
           ),
         ],
       ),
@@ -943,7 +1091,8 @@ class _BackgroundCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size, height: size,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: AppColors.navy.withOpacity(opacity),

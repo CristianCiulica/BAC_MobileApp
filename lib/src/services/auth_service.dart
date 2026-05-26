@@ -9,25 +9,46 @@ class AuthService {
     clientId: DefaultFirebaseOptions.currentPlatform.iosClientId,
   );
 
-  // Stream activ — ascultă schimbările de sesiune
-  static Stream<User?> get userStream => _auth.authStateChanges();
+  // Stream activ — ascultă schimbările de sesiune și profil
+  static Stream<User?> get userStream => _auth.userChanges();
   static User? get currentUser => _auth.currentUser;
 
+  static String get displayName {
+    final user = currentUser;
+    final name = user?.displayName?.trim();
+    if (name != null && name.isNotEmpty) return name;
+
+    final email = user?.email?.trim();
+    if (email != null && email.isNotEmpty) return email.split('@').first;
+
+    return 'Utilizator BacPro';
+  }
+
   // ── Email & Parolă ────────────────────────────────────────
-  static Future<UserCredential> signInWithEmail(
-      String email, String password) {
-    return _auth.signInWithEmailAndPassword(
-        email: email, password: password);
+  static Future<UserCredential> signInWithEmail(String email, String password) {
+    return _auth.signInWithEmailAndPassword(email: email, password: password);
   }
 
   static Future<UserCredential> registerWithEmail(
-      String email, String password) {
+    String email,
+    String password,
+  ) {
     return _auth.createUserWithEmailAndPassword(
-        email: email, password: password);
+      email: email,
+      password: password,
+    );
   }
 
   static Future<void> resetPassword(String email) {
     return _auth.sendPasswordResetEmail(email: email);
+  }
+
+  static Future<void> updateDisplayName(String name) async {
+    final cleanName = name.trim();
+    if (cleanName.isEmpty) return;
+
+    await currentUser?.updateDisplayName(cleanName);
+    await currentUser?.reload();
   }
 
   // ── Google ────────────────────────────────────────────────
