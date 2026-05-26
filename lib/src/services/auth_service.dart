@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../firebase_options.dart';
+import 'firestore_service.dart';
 
 class AuthService {
   static final _auth = FirebaseAuth.instance;
@@ -25,18 +26,30 @@ class AuthService {
   }
 
   // ── Email & Parolă ────────────────────────────────────────
-  static Future<UserCredential> signInWithEmail(String email, String password) {
-    return _auth.signInWithEmailAndPassword(email: email, password: password);
+  static Future<UserCredential> signInWithEmail(
+    String email,
+    String password,
+  ) async {
+    final credential = await _auth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    final user = credential.user;
+    if (user != null) await FirestoreService.ensureUserDocument(user);
+    return credential;
   }
 
   static Future<UserCredential> registerWithEmail(
     String email,
     String password,
-  ) {
-    return _auth.createUserWithEmailAndPassword(
+  ) async {
+    final credential = await _auth.createUserWithEmailAndPassword(
       email: email,
       password: password,
     );
+    final user = credential.user;
+    if (user != null) await FirestoreService.ensureUserDocument(user);
+    return credential;
   }
 
   static Future<void> resetPassword(String email) {
@@ -49,6 +62,11 @@ class AuthService {
 
     await currentUser?.updateDisplayName(cleanName);
     await currentUser?.reload();
+
+    final user = currentUser;
+    if (user != null) {
+      await FirestoreService.updateProfile(user: user, name: cleanName);
+    }
   }
 
   // ── Google ────────────────────────────────────────────────
@@ -60,7 +78,10 @@ class AuthService {
       accessToken: googleAuth.accessToken,
       idToken: googleAuth.idToken,
     );
-    return _auth.signInWithCredential(credential);
+    final userCredential = await _auth.signInWithCredential(credential);
+    final user = userCredential.user;
+    if (user != null) await FirestoreService.ensureUserDocument(user);
+    return userCredential;
   }
 
   // ── Sign Out ──────────────────────────────────────────────

@@ -7,7 +7,9 @@ import 'package:flutter/services.dart';
 
 import '../models/app_data.dart';
 import '../navigation.dart';
+import '../services/app_settings.dart';
 import '../services/auth_service.dart';
+import '../services/firestore_service.dart';
 import '../widgets/common.dart';
 import 'account_screens.dart';
 
@@ -20,6 +22,29 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  StreamSubscription<UserProfileData>? _profileSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = AuthService.currentUser;
+    if (user != null) {
+      FirestoreService.ensureUserDocument(user);
+      _profileSubscription = FirestoreService.watchProfile(user).listen((
+        profile,
+      ) {
+        if (AppSettings.darkMode.value != profile.darkMode) {
+          AppSettings.setDarkMode(profile.darkMode);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _profileSubscription?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +63,7 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final userName = AuthService.displayName;
-    final userEmail = AuthService.currentUser?.email;
+    final user = AuthService.currentUser;
 
     return Drawer(
       width: MediaQuery.of(context).size.width * 0.82,
@@ -82,11 +107,25 @@ class AppDrawer extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 3),
-                        Text(
-                          userEmail ?? 'Clasa a XII-a · Mate-Info',
-                          style: AppText.subheadStyle,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        if (user == null)
+                          Text(
+                            'Profil nesincronizat',
+                            style: AppText.subheadStyle,
+                          )
+                        else
+                          StreamBuilder<UserProfileData>(
+                            stream: FirestoreService.watchProfile(user),
+                            builder: (context, snapshot) {
+                              final profile = snapshot.data;
+                              return Text(
+                                profile == null
+                                    ? (user.email ?? 'Profil BacPro')
+                                    : '${profile.school} · ${profile.selectedProfile}',
+                                style: AppText.subheadStyle,
+                                overflow: TextOverflow.ellipsis,
+                              );
+                            },
+                          ),
                         const SizedBox(height: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -122,12 +161,43 @@ class AppDrawer extends StatelessWidget {
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: const [
-                    _StatItem(value: '14', label: 'Subiecte'),
-                    _VerticalDivider(),
-                    _StatItem(value: '28h', label: 'Timp total'),
-                    _VerticalDivider(),
-                    _StatItem(value: '7.8', label: 'Medie'),
+                  children: [
+                    if (user == null) ...[
+                      const _StatItem(value: '0', label: 'Subiecte'),
+                      const _VerticalDivider(),
+                      const _StatItem(value: '0h', label: 'Timp total'),
+                      const _VerticalDivider(),
+                      const _StatItem(value: '-', label: 'Medie'),
+                    ] else
+                      StreamBuilder<List<StudySession>>(
+                        stream: FirestoreService.watchSessions(user),
+                        builder: (context, snapshot) {
+                          final progress = UserProgress.fromSessions(
+                            snapshot.data ?? const [],
+                          );
+                          return Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _StatItem(
+                                value: '${progress.solvedCount}',
+                                label: 'Subiecte',
+                              ),
+                              const _VerticalDivider(),
+                              _StatItem(
+                                value: _formatHours(progress.totalStudySeconds),
+                                label: 'Timp total',
+                              ),
+                              const _VerticalDivider(),
+                              _StatItem(
+                                value: progress.averageGrade == 0
+                                    ? '-'
+                                    : progress.averageGrade.toStringAsFixed(1),
+                                label: 'Medie',
+                              ),
+                            ],
+                          );
+                        },
+                      ),
                   ],
                 ),
               ),
@@ -233,6 +303,13 @@ class AppDrawer extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _formatHours(int seconds) {
+    final hours = seconds ~/ 3600;
+    final minutes = (seconds % 3600) ~/ 60;
+    if (hours == 0) return '${minutes}m';
+    return '${hours}h';
   }
 
   void _push(BuildContext context, Widget page) {
@@ -1298,8 +1375,24 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
                     child: CupertinoButton(
                       color: AppColors.blue,
                       borderRadius: BorderRadius.circular(14),
-                      onPressed: () {
+                      onPressed: () async {
                         HapticFeedback.heavyImpact();
+                        final user = AuthService.currentUser;
+                        if (user != null) {
+                          await FirestoreService.addSession(
+                            user,
+                            StudySession(
+                              subjectName: widget.subjectName,
+                              year: widget.year,
+                              sessionName: widget.sessionName,
+                              durationSeconds: _bacDuration - _secondsLeft,
+                              estimatedGrade: _estimatedGrade,
+                              notes: _notesController.text.trim(),
+                              completedAt: DateTime.now(),
+                            ),
+                          );
+                        }
+                        if (!context.mounted) return;
                         showCupertinoDialog(
                           context: context,
                           builder: (_) => CupertinoAlertDialog(
