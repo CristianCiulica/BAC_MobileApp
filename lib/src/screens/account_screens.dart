@@ -5,6 +5,7 @@ import '../models/app_data.dart';
 import '../services/app_settings.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import '../services/pdf_export_service.dart';
 import '../widgets/common.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -845,8 +846,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   color: AppColors.blue,
                                 ),
                                 title: 'Exportă datele mele',
-                                subtitle: 'Pregătit pentru export CSV/PDF',
-                                onTap: () {},
+                                subtitle: 'Generează raport PDF',
+                                onTap: () =>
+                                    _exportUserData(context, profile, user),
                               ),
                               IOSCell(
                                 leading: const AppIconBadge(
@@ -865,6 +867,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       );
                     },
                   ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _exportUserData(
+    BuildContext context,
+    UserProfileData profile,
+    dynamic user,
+  ) async {
+    final sessions = await FirestoreService.watchSessions(user).first;
+    final file = await PdfExportService.exportUserData(
+      profile: profile,
+      sessions: sessions,
+    );
+    if (!context.mounted) return;
+    showCupertinoDialog(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: const Text('PDF exportat'),
+        content: Text('Raportul a fost salvat aici:\n${file.path}'),
+        actions: [
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
           ),
         ],
       ),
@@ -956,7 +985,7 @@ class AboutScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  'EduBAC',
+                  'Bac Pro',
                   style: TextStyle(
                     fontFamily: '.SF Pro Display',
                     fontSize: 24,
@@ -1006,7 +1035,7 @@ class AboutScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '© 2025 EduBAC',
+                  '© 2025 Bac Pro',
                   style: AppText.captionStyle.copyWith(
                     color: AppColors.tertiaryLabel,
                   ),

@@ -20,7 +20,7 @@ class BacApp extends StatelessWidget {
         AppColors.isDark = isDark;
 
         return MaterialApp(
-          title: 'BacPro',
+          title: 'Bac Pro',
           debugShowCheckedModeBanner: false,
           theme: _buildTheme(isDark),
           home: StreamBuilder<User?>(

@@ -22,7 +22,7 @@ class AuthService {
     final email = user?.email?.trim();
     if (email != null && email.isNotEmpty) return email.split('@').first;
 
-    return 'Utilizator BacPro';
+    return 'Utilizator Bac Pro';
   }
 
   // ── Email & Parolă ────────────────────────────────────────

@@ -186,7 +186,7 @@ class _LoginScreenState extends State<LoginScreen>
                       const SizedBox(height: 18),
                       Center(
                         child: Text(
-                          'BacPro',
+                          'Bac Pro',
                           style: TextStyle(
                             fontFamily: '.SF Pro Display',
                             fontSize: 30,
@@ -257,7 +257,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   top: 8,
                                   bottom: 4,
                                 ),
-                                minSize: 0,
+                                minimumSize: Size.zero,
                                 onPressed: _resetPassword,
                                 child: Text(
                                   'Ai uitat parola?',
@@ -1095,7 +1095,7 @@ class _BackgroundCircle extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.navy.withOpacity(opacity),
+        color: AppColors.navy.withValues(alpha: opacity),
       ),
     );
   }

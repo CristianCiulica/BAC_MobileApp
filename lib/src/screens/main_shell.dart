@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -10,6 +9,7 @@ import '../navigation.dart';
 import '../services/app_settings.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import '../services/pdf_export_service.dart';
 import '../widgets/common.dart';
 import 'account_screens.dart';
 
@@ -103,7 +103,6 @@ class AppDrawer extends StatelessWidget {
                             fontSize: 19,
                             fontWeight: FontWeight.w700,
                             color: AppColors.label,
-                            letterSpacing: -0.3,
                           ),
                         ),
                         const SizedBox(height: 3),
@@ -119,7 +118,7 @@ class AppDrawer extends StatelessWidget {
                               final profile = snapshot.data;
                               return Text(
                                 profile == null
-                                    ? (user.email ?? 'Profil BacPro')
+                                    ? (user.email ?? 'Profil Bac Pro')
                                     : '${profile.school} · ${profile.selectedProfile}',
                                 style: AppText.subheadStyle,
                                 overflow: TextOverflow.ellipsis,
@@ -267,7 +266,7 @@ class AppDrawer extends StatelessWidget {
                       ),
                       _DrawerItem(
                         icon: CupertinoIcons.info_circle_fill,
-                        label: 'Despre EduBAC',
+                        label: 'Despre Bac Pro',
                         color: AppColors.blue,
                         onTap: () => _push(context, const AboutScreen()),
                       ),
@@ -290,19 +289,15 @@ class AppDrawer extends StatelessWidget {
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'BacPro v1.0.0 · Made in Romania',
-                style: AppText.captionStyle.copyWith(
-                  color: AppColors.tertiaryLabel,
-                ),
-              ),
-            ),
           ],
         ),
       ),
     );
+  }
+
+  void _push(BuildContext context, Widget page) {
+    Navigator.pop(context);
+    Navigator.push(context, cupertinoRoute(page));
   }
 
   String _formatHours(int seconds) {
@@ -310,11 +305,6 @@ class AppDrawer extends StatelessWidget {
     final minutes = (seconds % 3600) ~/ 60;
     if (hours == 0) return '${minutes}m';
     return '${hours}h';
-  }
-
-  void _push(BuildContext context, Widget page) {
-    Navigator.pop(context);
-    Navigator.push(context, cupertinoRoute(page));
   }
 }
 
@@ -344,7 +334,6 @@ class _StatItem extends StatelessWidget {
             fontSize: 22,
             fontWeight: FontWeight.w700,
             color: AppColors.label,
-            letterSpacing: -0.5,
           ),
         ),
         const SizedBox(height: 2),
@@ -486,7 +475,7 @@ class ProfileSelectionScreen extends StatelessWidget {
           ),
           flexibleSpace: FlexibleSpaceBar(
             titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
-            title: Text('BacPro', style: AppText.largeTitleStyle),
+            title: Text('Bac Pro', style: AppText.largeTitleStyle),
             expandedTitleScale: 1.0,
             collapseMode: CollapseMode.none,
           ),
@@ -972,6 +961,47 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
     return AppColors.red;
   }
 
+  Future<void> _openSubjectPdf({required bool answerKey}) async {
+    HapticFeedback.selectionClick();
+    final file = await PdfExportService.exportSubjectPdf(
+      subjectName: widget.subjectName,
+      year: widget.year,
+      sessionName: widget.sessionName,
+      answerKey: answerKey,
+    );
+    if (!mounted) return;
+    _showPdfReadyDialog(file.path);
+  }
+
+  Future<void> _shareSubjectPdf() async {
+    HapticFeedback.selectionClick();
+    final file = await PdfExportService.exportSubjectPdf(
+      subjectName: widget.subjectName,
+      year: widget.year,
+      sessionName: widget.sessionName,
+      answerKey: false,
+    );
+    if (!mounted) return;
+    _showPdfReadyDialog(file.path);
+  }
+
+  void _showPdfReadyDialog(String path) {
+    showCupertinoDialog(
+      context: context,
+      builder: (_) => CupertinoAlertDialog(
+        title: const Text('PDF generat'),
+        content: Text('Fișierul a fost salvat aici:\n$path'),
+        actions: [
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1265,25 +1295,8 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
                         color: AppColors.blue,
                       ),
                       title: 'Vizualizează subiectul',
-                      subtitle: 'PDF oficial descărcat',
-                      onTap: () {
-                        showCupertinoDialog(
-                          context: context,
-                          builder: (_) => CupertinoAlertDialog(
-                            title: const Text('PDF Viewer'),
-                            content: const Text(
-                              'Integrarea PDF-ului va fi disponibilă după conectarea la baza de date oficială a subiectelor.',
-                            ),
-                            actions: [
-                              CupertinoDialogAction(
-                                isDefaultAction: true,
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text('OK'),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                      subtitle: 'Generează și deschide PDF',
+                      onTap: () => _openSubjectPdf(answerKey: false),
                     ),
                     IOSCell(
                       leading: const AppIconBadge(
@@ -1291,8 +1304,8 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
                         color: AppColors.green,
                       ),
                       title: 'Barem de corectare',
-                      subtitle: 'Verifică răspunsurile corecte',
-                      onTap: () {},
+                      subtitle: 'Generează PDF pentru barem',
+                      onTap: () => _openSubjectPdf(answerKey: true),
                     ),
                     IOSCell(
                       leading: const AppIconBadge(
@@ -1300,8 +1313,8 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
                         color: AppColors.teal,
                       ),
                       title: 'Distribuie subiectul',
-                      subtitle: 'Trimite unui coleg',
-                      onTap: () {},
+                      subtitle: 'Trimite PDF unui coleg',
+                      onTap: _shareSubjectPdf,
                     ),
                   ],
                 ),
@@ -1416,6 +1429,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
                       child: const Text(
                         'Marchează ca rezolvat',
                         style: TextStyle(
+                          color: Colors.white,
                           fontWeight: FontWeight.w600,
                           fontSize: 16,
                         ),
