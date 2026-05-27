@@ -141,6 +141,54 @@ class StudySession {
   }
 }
 
+class DeveloperMessage {
+  final String id;
+  final String text;
+  final DateTime createdAt;
+  final String status;
+
+  const DeveloperMessage({
+    required this.id,
+    required this.text,
+    required this.createdAt,
+    required this.status,
+  });
+
+  factory DeveloperMessage.fromMap(Map<String, dynamic> data) {
+    final createdAtIso = (data['createdAtIso'] as String?)?.trim() ?? '';
+    final createdAtValue = data['createdAt'];
+
+    DateTime createdAt;
+    if (createdAtIso.isNotEmpty) {
+      createdAt = DateTime.tryParse(createdAtIso)?.toLocal() ?? DateTime.now();
+    } else if (createdAtValue is Timestamp) {
+      createdAt = createdAtValue.toDate();
+    } else {
+      createdAt = DateTime.now();
+    }
+
+    return DeveloperMessage(
+      id: (data['id'] as String?)?.trim().isNotEmpty == true
+          ? (data['id'] as String).trim()
+          : 'msg_${createdAt.millisecondsSinceEpoch}',
+      text: (data['text'] as String?)?.trim() ?? '',
+      createdAt: createdAt,
+      status: (data['status'] as String?)?.trim().isNotEmpty == true
+          ? (data['status'] as String).trim()
+          : 'new',
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'text': text,
+      'status': status,
+      'createdAtIso': createdAt.toIso8601String(),
+    };
+  }
+}
+
 class ExamPdfAssets {
   final String subjectPdfAsset;
   final String answerPdfAsset;
@@ -666,6 +714,53 @@ class FirestoreService {
       'lastFeedbackAt': FieldValue.serverTimestamp(),
       'feedbackCount': FieldValue.increment(1),
       'feedbackHistory': FieldValue.arrayUnion([entry]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  static Stream<List<DeveloperMessage>> watchDeveloperMessages(User user) {
+    return _userDoc(user.uid).snapshots().map((snapshot) {
+      final data = snapshot.data() ?? const <String, dynamic>{};
+      final raw = data['developerMessages'];
+      final parsed = <DeveloperMessage>[];
+
+      if (raw is List) {
+        for (final item in raw) {
+          if (item is Map<String, dynamic>) {
+            parsed.add(DeveloperMessage.fromMap(item));
+          } else if (item is Map) {
+            parsed.add(
+              DeveloperMessage.fromMap(Map<String, dynamic>.from(item)),
+            );
+          }
+        }
+      }
+
+      parsed.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return parsed;
+    });
+  }
+
+  static Future<void> sendDeveloperMessage(
+    User user, {
+    required String message,
+  }) async {
+    final cleanMessage = message.trim();
+    if (cleanMessage.isEmpty) return;
+
+    final now = DateTime.now();
+    final entry = DeveloperMessage(
+      id: 'msg_${now.microsecondsSinceEpoch}',
+      text: cleanMessage,
+      createdAt: now,
+      status: 'new',
+    ).toMap();
+
+    await _userDoc(user.uid).set({
+      'developerMessages': FieldValue.arrayUnion([entry]),
+      'developerMessagesCount': FieldValue.increment(1),
+      'lastDeveloperMessage': cleanMessage,
+      'lastDeveloperMessageAt': FieldValue.serverTimestamp(),
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
