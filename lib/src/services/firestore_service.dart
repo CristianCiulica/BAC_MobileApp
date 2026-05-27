@@ -160,6 +160,309 @@ class ExamPdfAssets {
   bool get isValid => subjectPdfAsset.isNotEmpty && answerPdfAsset.isNotEmpty;
 }
 
+class RubricCriterion {
+  final String title;
+  final int maxPoints;
+  final String guidance;
+
+  const RubricCriterion({
+    required this.title,
+    required this.maxPoints,
+    required this.guidance,
+  });
+
+  factory RubricCriterion.fromMap(Map<String, dynamic> data) {
+    final parsedPoints = (data['maxPoints'] as num?)?.toInt() ?? 0;
+    return RubricCriterion(
+      title: (data['title'] as String?)?.trim().isNotEmpty == true
+          ? (data['title'] as String).trim()
+          : 'Criteriu',
+      maxPoints: parsedPoints <= 0 ? 1 : parsedPoints,
+      guidance: (data['guidance'] as String?)?.trim() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {'title': title, 'maxPoints': maxPoints, 'guidance': guidance};
+  }
+}
+
+class ExamRubric {
+  final String profile;
+  final String subject;
+  final String year;
+  final String session;
+  final String strategyTip;
+  final List<RubricCriterion> criteria;
+
+  const ExamRubric({
+    required this.profile,
+    required this.subject,
+    required this.year,
+    required this.session,
+    required this.strategyTip,
+    required this.criteria,
+  });
+
+  int get maxScore {
+    return criteria.fold<int>(0, (total, item) => total + item.maxPoints);
+  }
+
+  factory ExamRubric.fromMap({
+    required String profile,
+    required String subject,
+    required String year,
+    required String session,
+    required Map<String, dynamic> data,
+  }) {
+    final raw = data['criteria'];
+    final parsedCriteria = <RubricCriterion>[];
+    if (raw is List) {
+      for (final item in raw) {
+        if (item is Map<String, dynamic>) {
+          parsedCriteria.add(RubricCriterion.fromMap(item));
+        } else if (item is Map) {
+          parsedCriteria.add(
+            RubricCriterion.fromMap(Map<String, dynamic>.from(item)),
+          );
+        }
+      }
+    }
+
+    return ExamRubric(
+      profile: profile,
+      subject: subject,
+      year: year,
+      session: session,
+      strategyTip:
+          (data['strategyTip'] as String?)?.trim() ??
+          'Parcurge întâi cerințele sigure, apoi revino la cele dificile.',
+      criteria: parsedCriteria.isEmpty
+          ? _defaultCriteriaForSubject(subject)
+          : parsedCriteria,
+    );
+  }
+
+  factory ExamRubric.fallback({
+    required String profile,
+    required String subject,
+    required String year,
+    required String session,
+  }) {
+    final normalizedProfile = profile.toLowerCase().trim();
+    final normalizedSubject = subject.toLowerCase().trim();
+    final normalizedSession = session.toLowerCase().trim();
+    final isMateInfoProfile = normalizedProfile.contains('mate-info');
+    final isMathM1 =
+        normalizedSubject.contains('matematic') &&
+        normalizedSubject.contains('m1');
+    final isBac2025 =
+        year.trim() == '2025' &&
+        (normalizedSession.contains('iunie') ||
+            normalizedSession.contains('vara'));
+
+    if (isMateInfoProfile && isMathM1 && isBac2025) {
+      return const ExamRubric(
+        profile: 'Mate-Info',
+        subject: 'Matematică (M1)',
+        year: '2025',
+        session: 'Sesiunea Iunie',
+        strategyTip:
+            'Respectă baremul punct cu punct. 10p sunt din oficiu, apoi urmărește cele 18 repere a câte 5p.',
+        criteria: [
+          RubricCriterion(
+            title: 'Punctaj din oficiu',
+            maxPoints: 10,
+            guidance: 'Aceste puncte se acordă automat.',
+          ),
+          RubricCriterion(
+            title: 'Subiectul I.1 numere complexe',
+            maxPoints: 5,
+            guidance:
+                'Verifică forma finală și calculul corect al părții reale.',
+          ),
+          RubricCriterion(
+            title: 'Subiectul I.2 compunere funcții',
+            maxPoints: 5,
+            guidance: 'Folosește relația f(f(a)) și rezolvă ecuația în a.',
+          ),
+          RubricCriterion(
+            title: 'Subiectul I.3 ecuație de gradul al doilea',
+            maxPoints: 5,
+            guidance:
+                'Obține corect rădăcinile și menționează explicit soluțiile.',
+          ),
+          RubricCriterion(
+            title: 'Subiectul I.4 probabilitate',
+            maxPoints: 5,
+            guidance: 'Numără separat cazurile posibile și favorabile.',
+          ),
+          RubricCriterion(
+            title: 'Subiectul I.5 geometrie analitică',
+            maxPoints: 5,
+            guidance: 'Determină corect mijloacele și egalează coordonatele.',
+          ),
+          RubricCriterion(
+            title: 'Subiectul I.6 trigonometrie în triunghi',
+            maxPoints: 5,
+            guidance: 'Aplică raportul trigonometric și teorema lui Pitagora.',
+          ),
+          RubricCriterion(
+            title: 'Subiectul II.1.a determinant',
+            maxPoints: 5,
+            guidance: 'Calculează determinantul complet, fără salturi de pași.',
+          ),
+          RubricCriterion(
+            title: 'Subiectul II.1.b operații cu matrice',
+            maxPoints: 5,
+            guidance: 'Simplifică expresiile matriciale până la forma finală.',
+          ),
+          RubricCriterion(
+            title: 'Subiectul II.1.c ecuație matricială',
+            maxPoints: 5,
+            guidance:
+                'Folosește relația dată și concluzionează valorile lui x.',
+          ),
+          RubricCriterion(
+            title: 'Subiectul II.2.a evaluare polinom',
+            maxPoints: 5,
+            guidance: 'Înlocuiește atent și grupează termenii corect.',
+          ),
+          RubricCriterion(
+            title: 'Subiectul II.2.b împărțire polinomială',
+            maxPoints: 5,
+            guidance: 'Menționează explicit câtul și restul.',
+          ),
+          RubricCriterion(
+            title: 'Subiectul II.2.c relație cu parametru',
+            maxPoints: 5,
+            guidance:
+                'Transformă identitatea și rezolvă corect pentru parametru.',
+          ),
+          RubricCriterion(
+            title: 'Subiectul III.1.a derivată',
+            maxPoints: 5,
+            guidance:
+                'Aplică regulile de derivare și simplifică expresia finală.',
+          ),
+          RubricCriterion(
+            title: 'Subiectul III.1.b asimptotă oblică',
+            maxPoints: 5,
+            guidance: 'Calculează limita diferenței față de dreapta propusă.',
+          ),
+          RubricCriterion(
+            title: 'Subiectul III.1.c bijectivitate',
+            maxPoints: 5,
+            guidance: 'Justifică injectivitatea și surjectivitatea separat.',
+          ),
+          RubricCriterion(
+            title: 'Subiectul III.2.a integrală polinomială',
+            maxPoints: 5,
+            guidance: 'Integrează corect și evaluează la capete.',
+          ),
+          RubricCriterion(
+            title: 'Subiectul III.2.b integrală cu logaritm',
+            maxPoints: 5,
+            guidance: 'Folosește descompunerea potrivită și limitele exacte.',
+          ),
+          RubricCriterion(
+            title: 'Subiectul III.2.c integrală cu exponențială',
+            maxPoints: 5,
+            guidance: 'Simplifică expresia înainte de integrare.',
+          ),
+        ],
+      );
+    }
+
+    return ExamRubric(
+      profile: profile,
+      subject: subject,
+      year: year,
+      session: session,
+      strategyTip:
+          'Concentrează-te pe claritate și justificări scurte la fiecare pas.',
+      criteria: _defaultCriteriaForSubject(subject),
+    );
+  }
+
+  static List<RubricCriterion> _defaultCriteriaForSubject(String subject) {
+    final lower = subject.toLowerCase();
+    if (lower.contains('rom')) {
+      return const [
+        RubricCriterion(
+          title: 'Înțelegerea textului și identificarea ideilor',
+          maxPoints: 20,
+          guidance: 'Reia exercițiile de înțelegere pe text la prima vedere.',
+        ),
+        RubricCriterion(
+          title: 'Argumentare și coerență',
+          maxPoints: 25,
+          guidance: 'Construiește răspunsuri în 2-3 pași clari.',
+        ),
+        RubricCriterion(
+          title: 'Eseu: structură și exemple relevante',
+          maxPoints: 35,
+          guidance: 'Folosește schema: teză, argument, exemplu, concluzie.',
+        ),
+        RubricCriterion(
+          title: 'Corectitudine gramaticală și exprimare',
+          maxPoints: 20,
+          guidance: 'Lasă 10 minute pentru revizie finală.',
+        ),
+      ];
+    }
+
+    if (lower.contains('matematic')) {
+      return const [
+        RubricCriterion(
+          title: 'Subiectul I - calcule rapide și formule',
+          maxPoints: 30,
+          guidance: 'Recapitulează formulele de bază și exercițiile tip.',
+        ),
+        RubricCriterion(
+          title: 'Subiectul II - justificare pași',
+          maxPoints: 30,
+          guidance: 'Scrie explicit transformările, nu doar rezultatul final.',
+        ),
+        RubricCriterion(
+          title: 'Subiectul III - metodă completă',
+          maxPoints: 30,
+          guidance: 'Împarte rezolvarea în pași scurți și verifica semnele.',
+        ),
+        RubricCriterion(
+          title: 'Acuratețe și verificare finală',
+          maxPoints: 10,
+          guidance:
+              'Reverifică numeric rezultatele critice înainte de predare.',
+        ),
+      ];
+    }
+
+    return const [
+      RubricCriterion(
+        title: 'Corectitudine conceptuală',
+        maxPoints: 35,
+        guidance: 'Recitește noțiunile teoretice pentru capitolele slabe.',
+      ),
+      RubricCriterion(
+        title: 'Aplicare pe cerințe',
+        maxPoints: 35,
+        guidance: 'Rezolvă 2-3 exerciții tipice pentru fiecare subiect.',
+      ),
+      RubricCriterion(
+        title: 'Structură și claritate',
+        maxPoints: 20,
+        guidance: 'Folosește pași numerotați și formulări concise.',
+      ),
+      RubricCriterion(
+        title: 'Revizie finală',
+        maxPoints: 10,
+        guidance: 'Păstrează 5-10 minute pentru verificare.',
+      ),
+    ];
+  }
+}
+
 class UserProgress {
   final int solvedCount;
   final int totalStudySeconds;
@@ -344,6 +647,29 @@ class FirestoreService {
     await batch.commit();
   }
 
+  static Future<void> submitAppFeedback(
+    User user, {
+    required int rating,
+    required String message,
+  }) async {
+    final cleanRating = rating.clamp(1, 5);
+    final cleanMessage = message.trim();
+    final entry = {
+      'rating': cleanRating,
+      'message': cleanMessage,
+      'createdAtIso': DateTime.now().toIso8601String(),
+    };
+
+    await _userDoc(user.uid).set({
+      'lastFeedbackRating': cleanRating,
+      'lastFeedbackMessage': cleanMessage,
+      'lastFeedbackAt': FieldValue.serverTimestamp(),
+      'feedbackCount': FieldValue.increment(1),
+      'feedbackHistory': FieldValue.arrayUnion([entry]),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   static Future<ExamPdfAssets?> fetchExamPdfAssets({
     required String profile,
     required String subject,
@@ -356,16 +682,21 @@ class FirestoreService {
         .where('subject', isEqualTo: subject)
         .where('session', isEqualTo: session);
 
-    final stringSnapshot =
-        await baseQuery.where('year', isEqualTo: year).limit(1).get();
-    DocumentSnapshot<Map<String, dynamic>>? doc =
-        stringSnapshot.docs.isNotEmpty ? stringSnapshot.docs.first : null;
+    final stringSnapshot = await baseQuery
+        .where('year', isEqualTo: year)
+        .limit(1)
+        .get();
+    DocumentSnapshot<Map<String, dynamic>>? doc = stringSnapshot.docs.isNotEmpty
+        ? stringSnapshot.docs.first
+        : null;
 
     if (doc == null) {
       final intYear = int.tryParse(year);
       if (intYear != null) {
-        final intSnapshot =
-            await baseQuery.where('year', isEqualTo: intYear).limit(1).get();
+        final intSnapshot = await baseQuery
+            .where('year', isEqualTo: intYear)
+            .limit(1)
+            .get();
         if (intSnapshot.docs.isNotEmpty) {
           doc = intSnapshot.docs.first;
         }
@@ -376,5 +707,49 @@ class FirestoreService {
 
     final assets = ExamPdfAssets.fromMap(doc.data() ?? {});
     return assets.isValid ? assets : null;
+  }
+
+  static Future<ExamRubric?> fetchExamRubric({
+    required String profile,
+    required String subject,
+    required String year,
+    required String session,
+  }) async {
+    final baseQuery = _db
+        .collection('exam_rubrics')
+        .where('profile', isEqualTo: profile)
+        .where('subject', isEqualTo: subject)
+        .where('session', isEqualTo: session);
+
+    final stringSnapshot = await baseQuery
+        .where('year', isEqualTo: year)
+        .limit(1)
+        .get();
+    DocumentSnapshot<Map<String, dynamic>>? doc = stringSnapshot.docs.isNotEmpty
+        ? stringSnapshot.docs.first
+        : null;
+
+    if (doc == null) {
+      final intYear = int.tryParse(year);
+      if (intYear != null) {
+        final intSnapshot = await baseQuery
+            .where('year', isEqualTo: intYear)
+            .limit(1)
+            .get();
+        if (intSnapshot.docs.isNotEmpty) {
+          doc = intSnapshot.docs.first;
+        }
+      }
+    }
+
+    if (doc == null) return null;
+
+    return ExamRubric.fromMap(
+      profile: profile,
+      subject: subject,
+      year: year,
+      session: session,
+      data: doc.data() ?? const {},
+    );
   }
 }

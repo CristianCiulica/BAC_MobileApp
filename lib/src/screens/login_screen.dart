@@ -154,18 +154,23 @@ class _LoginScreenState extends State<LoginScreen>
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F2F7),
+      backgroundColor: AppColors.loginBackground,
       body: Stack(
         children: [
           Positioned(
-            top: -80,
-            left: -60,
-            child: _BackgroundCircle(size: 300, opacity: 0.06),
+            top: -130,
+            left: -90,
+            child: _BackgroundCircle(size: 360, opacity: 0.09),
           ),
           Positioned(
-            top: 60,
-            right: -80,
-            child: _BackgroundCircle(size: 220, opacity: 0.04),
+            top: 120,
+            right: -70,
+            child: _BackgroundCircle(size: 240, opacity: 0.06),
+          ),
+          Positioned(
+            bottom: -100,
+            left: -50,
+            child: _BackgroundCircle(size: 230, opacity: 0.05),
           ),
           SafeArea(
             child: FadeTransition(
@@ -176,49 +181,98 @@ class _LoginScreenState extends State<LoginScreen>
                   physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
-                    vertical: 32,
+                    vertical: 18,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const SizedBox(height: 20),
-                      const Center(child: _AppIcon()),
-                      const SizedBox(height: 18),
-                      Center(
-                        child: Text(
-                          'Bac Pro',
-                          style: TextStyle(
-                            fontFamily: '.SF Pro Display',
-                            fontSize: 30,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.navy,
-                            letterSpacing: -0.6,
+                      const SizedBox(height: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF0F1C3F), Color(0xFF1E3C79)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.navy.withAlpha(55),
+                              blurRadius: 28,
+                              offset: const Offset(0, 14),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const _AppIcon(size: 64),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: const [
+                                      Text(
+                                        'Bac Pro',
+                                        style: TextStyle(
+                                          fontFamily: '.SF Pro Display',
+                                          fontSize: 27,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      SizedBox(height: 2),
+                                      Text(
+                                        'Antrenorul tău de bac',
+                                        style: TextStyle(
+                                          fontFamily: '.SF Pro Text',
+                                          fontSize: 13,
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            const Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                _HeroChip(
+                                  icon: CupertinoIcons.chart_bar_fill,
+                                  label: 'Coach pe barem',
+                                ),
+                                _HeroChip(
+                                  icon: CupertinoIcons.timer_fill,
+                                  label: 'Cronometru 3h',
+                                ),
+                                _HeroChip(
+                                  icon: CupertinoIcons.checkmark_shield_fill,
+                                  label: '100% gratuit',
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      const Center(
-                        child: Text(
-                          'Pregătire Bacalaureat',
-                          style: TextStyle(
-                            fontFamily: '.SF Pro Text',
-                            fontSize: 14,
-                            color: Color(0xFF6C6C70),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 36),
+                      const SizedBox(height: 26),
 
-                      // Form card
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(22),
+                          border: Border.all(color: Colors.black.withAlpha(12)),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withAlpha(10),
-                              blurRadius: 24,
-                              offset: const Offset(0, 8),
+                              color: Colors.black.withAlpha(14),
+                              blurRadius: 26,
+                              offset: const Offset(0, 10),
                             ),
                           ],
                         ),
@@ -275,7 +329,7 @@ class _LoginScreenState extends State<LoginScreen>
                               height: 50,
                               child: CupertinoButton(
                                 color: AppColors.navy,
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(14),
                                 padding: EdgeInsets.zero,
                                 onPressed: _isLoading ? null : _signIn,
                                 child: _isLoading
@@ -297,7 +351,7 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                       ),
 
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 22),
 
                       Row(
                         children: [
@@ -310,7 +364,7 @@ class _LoginScreenState extends State<LoginScreen>
                           const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 14),
                             child: Text(
-                              'Sau continuă cu',
+                              'Conectare rapidă',
                               style: TextStyle(
                                 fontFamily: '.SF Pro Text',
                                 fontSize: 12,
@@ -327,13 +381,13 @@ class _LoginScreenState extends State<LoginScreen>
                         ],
                       ),
 
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
 
                       _GoogleSignInButton(
                         onTap: _isLoading ? null : _signInWithGoogle,
                       ),
 
-                      const SizedBox(height: 36),
+                      const SizedBox(height: 28),
 
                       Center(
                         child: GestureDetector(
@@ -367,7 +421,7 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 14),
                     ],
                   ),
                 ),
@@ -997,6 +1051,41 @@ class _GoogleSignInButton extends StatelessWidget {
   }
 }
 
+class _HeroChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _HeroChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(26),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withAlpha(36)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: Colors.white),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              fontFamily: '.SF Pro Text',
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _GoogleLogoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
@@ -1033,16 +1122,17 @@ class _GoogleLogoPainter extends CustomPainter {
 }
 
 class _AppIcon extends StatelessWidget {
-  const _AppIcon();
+  final double size;
+  const _AppIcon({this.size = 80});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 80,
-      height: 80,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: AppColors.navy,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(size * 0.25),
         boxShadow: [
           BoxShadow(
             color: AppColors.navy.withAlpha(70),
@@ -1055,12 +1145,12 @@ class _AppIcon extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           Positioned(
-            bottom: 6,
-            left: 10,
+            bottom: 5,
+            left: 8,
             child: Text(
               'B',
               style: TextStyle(
-                fontSize: 52,
+                fontSize: 44,
                 fontWeight: FontWeight.w900,
                 color: Colors.white,
                 height: 1.0,
@@ -1069,11 +1159,11 @@ class _AppIcon extends StatelessWidget {
             ),
           ),
           Positioned(
-            top: 8,
-            right: 8,
+            top: 7,
+            right: 7,
             child: Icon(
               CupertinoIcons.doc_text,
-              size: 28,
+              size: 24,
               color: Colors.white70,
             ),
           ),

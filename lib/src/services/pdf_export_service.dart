@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:pdf/widgets.dart' as pw;
 import 'package:flutter/services.dart';
@@ -69,7 +68,10 @@ class PdfExportService {
 
   static Future<File> exportSubjectPdf({required String assetPath}) async {
     final data = await rootBundle.load(assetPath);
-    final bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+    final bytes = data.buffer.asUint8List(
+      data.offsetInBytes,
+      data.lengthInBytes,
+    );
     final fileName = assetPath.split('/').last;
     return _saveBytes(bytes, fileName);
   }
