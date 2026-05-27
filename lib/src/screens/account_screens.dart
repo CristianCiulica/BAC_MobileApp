@@ -5,7 +5,9 @@ import '../models/app_data.dart';
 import '../services/app_settings.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import '../services/notification_service.dart';
 import '../services/pdf_export_service.dart';
+import '../../features/countdown/services/countdown_service.dart';
 import '../widgets/common.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -611,6 +613,25 @@ class NotificationsSettingsScreen extends StatefulWidget {
 class _NotificationsSettingsScreenState
     extends State<NotificationsSettingsScreen> {
   @override
+  void initState() {
+    super.initState();
+    NotificationService.instance.requestPermissions();
+  }
+
+  Future<void> _syncNotifications({
+    required bool dailyReminder,
+    required bool streakReminder,
+    required bool examAlerts,
+  }) async {
+    await NotificationService.instance.syncFromSettings(
+      dailyReminder: dailyReminder,
+      streakReminder: streakReminder,
+      examAlerts: examAlerts,
+      examDate: CountdownService.instance.notifier.value.examDate,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final user = AuthService.currentUser;
 
@@ -656,22 +677,34 @@ class _NotificationsSettingsScreenState
                                 color: AppColors.red,
                                 label: 'Reamintire zilnică',
                                 value: profile.dailyReminder,
-                                onChanged: (v) =>
-                                    FirestoreService.updateSettings(
-                                      user,
-                                      dailyReminder: v,
-                                    ),
+                                onChanged: (v) async {
+                                  await FirestoreService.updateSettings(
+                                    user,
+                                    dailyReminder: v,
+                                  );
+                                  await _syncNotifications(
+                                    dailyReminder: v,
+                                    streakReminder: profile.streakReminder,
+                                    examAlerts: profile.examAlerts,
+                                  );
+                                },
                               ),
                               _SwitchCell(
                                 icon: CupertinoIcons.flame_fill,
                                 color: AppColors.orange,
                                 label: 'Streak zilnic',
                                 value: profile.streakReminder,
-                                onChanged: (v) =>
-                                    FirestoreService.updateSettings(
-                                      user,
-                                      streakReminder: v,
-                                    ),
+                                onChanged: (v) async {
+                                  await FirestoreService.updateSettings(
+                                    user,
+                                    streakReminder: v,
+                                  );
+                                  await _syncNotifications(
+                                    dailyReminder: profile.dailyReminder,
+                                    streakReminder: v,
+                                    examAlerts: profile.examAlerts,
+                                  );
+                                },
                               ),
                             ],
                           ),
@@ -685,11 +718,17 @@ class _NotificationsSettingsScreenState
                                 color: AppColors.blue,
                                 label: 'Date sesiuni BAC',
                                 value: profile.examAlerts,
-                                onChanged: (v) =>
-                                    FirestoreService.updateSettings(
-                                      user,
-                                      examAlerts: v,
-                                    ),
+                                onChanged: (v) async {
+                                  await FirestoreService.updateSettings(
+                                    user,
+                                    examAlerts: v,
+                                  );
+                                  await _syncNotifications(
+                                    dailyReminder: profile.dailyReminder,
+                                    streakReminder: profile.streakReminder,
+                                    examAlerts: v,
+                                  );
+                                },
                               ),
                               _SwitchCell(
                                 icon: CupertinoIcons.chart_bar_fill,

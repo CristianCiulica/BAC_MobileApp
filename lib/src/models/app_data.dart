@@ -35,6 +35,7 @@ class AppText {
     fontWeight: FontWeight.w700,
     color: AppColors.label,
     letterSpacing: -0.5,
+    decoration: TextDecoration.none,
   );
 
   static TextStyle get titleStyle => TextStyle(
@@ -43,6 +44,7 @@ class AppText {
     fontWeight: FontWeight.w600,
     color: AppColors.label,
     letterSpacing: -0.3,
+    decoration: TextDecoration.none,
   );
 
   static TextStyle get bodyStyle => TextStyle(
@@ -51,6 +53,7 @@ class AppText {
     fontWeight: FontWeight.w400,
     color: AppColors.label,
     letterSpacing: -0.2,
+    decoration: TextDecoration.none,
   );
 
   static TextStyle get subheadStyle => TextStyle(
@@ -59,6 +62,7 @@ class AppText {
     fontWeight: FontWeight.w400,
     color: AppColors.secondLabel,
     letterSpacing: -0.1,
+    decoration: TextDecoration.none,
   );
 
   static TextStyle get captionStyle => TextStyle(
@@ -67,6 +71,7 @@ class AppText {
     fontWeight: FontWeight.w500,
     color: AppColors.secondLabel,
     letterSpacing: 0.1,
+    decoration: TextDecoration.none,
   );
 
   static TextStyle get footnoteSectionStyle => TextStyle(
@@ -75,6 +80,7 @@ class AppText {
     fontWeight: FontWeight.w600,
     color: AppColors.secondLabel,
     letterSpacing: 0.3,
+    decoration: TextDecoration.none,
   );
 }
 
@@ -143,6 +149,16 @@ final List<Profile> appProfiles = [
         accentColor: AppColors.teal,
       ),
       Subject(
+        title: 'Biologie',
+        icon: CupertinoIcons.leaf_arrow_circlepath,
+        accentColor: AppColors.green,
+      ),
+      Subject(
+        title: 'Chimie',
+        icon: CupertinoIcons.lab_flask_solid,
+        accentColor: AppColors.purple,
+      ),
+      Subject(
         title: 'Fizică',
         icon: CupertinoIcons.bolt_fill,
         accentColor: AppColors.orange,
@@ -166,6 +182,11 @@ final List<Profile> appProfiles = [
         accentColor: AppColors.indigo,
       ),
       Subject(
+        title: 'Informatică (M2)',
+        icon: CupertinoIcons.chevron_left_slash_chevron_right,
+        accentColor: AppColors.teal,
+      ),
+      Subject(
         title: 'Biologie',
         icon: CupertinoIcons.leaf_arrow_circlepath,
         accentColor: AppColors.green,
@@ -184,7 +205,7 @@ final List<Profile> appProfiles = [
   ),
   Profile(
     name: 'Filologie',
-    description: 'Profil Uman · Proba E.c) Istorie',
+    description: 'Profil Uman · Istorie + discipline socio-umane',
     icon: CupertinoIcons.book,
     accentColor: AppColors.orange,
     subjects: [
@@ -202,6 +223,31 @@ final List<Profile> appProfiles = [
         title: 'Geografie',
         icon: CupertinoIcons.globe,
         accentColor: AppColors.green,
+      ),
+      Subject(
+        title: 'Logică',
+        icon: CupertinoIcons.lightbulb_fill,
+        accentColor: AppColors.purple,
+      ),
+      Subject(
+        title: 'Psihologie',
+        icon: CupertinoIcons.person_crop_circle_fill,
+        accentColor: AppColors.indigo,
+      ),
+      Subject(
+        title: 'Economie',
+        icon: CupertinoIcons.chart_pie_fill,
+        accentColor: AppColors.orange,
+      ),
+      Subject(
+        title: 'Sociologie',
+        icon: CupertinoIcons.person_2_fill,
+        accentColor: AppColors.teal,
+      ),
+      Subject(
+        title: 'Filosofie',
+        icon: CupertinoIcons.book_circle_fill,
+        accentColor: AppColors.blue,
       ),
     ],
   ),
