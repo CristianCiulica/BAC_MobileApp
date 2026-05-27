@@ -6,45 +6,129 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../services/auth_service.dart';
+import 'main_shell.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
+  void _openLogin(BuildContext context) {
+    HapticFeedback.selectionClick();
+    Navigator.push(
+      context,
+      CupertinoPageRoute(builder: (_) => const LoginFormScreen()),
+    );
+  }
+
+  void _openSignup(BuildContext context) {
+    HapticFeedback.selectionClick();
+    Navigator.push(
+      context,
+      CupertinoPageRoute(builder: (_) => const RegisterScreen()),
+    );
+  }
+
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
+
+    return Scaffold(
+      body: _AuthBackground(
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth >= 1180) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 18, 24, 24),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1500),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Positioned(
+                            top: -8,
+                            right: 315,
+                            child: const _FloatingSymbol(
+                              icon: CupertinoIcons.lock_fill,
+                              size: 110,
+                              color: Color(0xFF5B2BFF),
+                            ),
+                          ),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                child: _EntryCard(
+                                  onLogin: () => _openLogin(context),
+                                  onSignup: () => _openSignup(context),
+                                ),
+                              ),
+                              const SizedBox(width: 22),
+                              Expanded(
+                                child: Transform.rotate(
+                                  angle: -0.08,
+                                  child: _LoginPreviewCard(
+                                    onLogin: () => _openLogin(context),
+                                    onSignup: () => _openSignup(context),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 22),
+                              Expanded(
+                                child: _SignupPreviewCard(
+                                  onSignup: () => _openSignup(context),
+                                  onLogin: () => _openLogin(context),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              return SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(18, 14, 18, 22),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 520),
+                      child: _EntryCard(
+                        onLogin: () => _openLogin(context),
+                        onSignup: () => _openSignup(context),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _LoginScreenState extends State<LoginScreen>
-    with SingleTickerProviderStateMixin {
+class LoginFormScreen extends StatefulWidget {
+  const LoginFormScreen({super.key});
+
+  @override
+  State<LoginFormScreen> createState() => _LoginFormScreenState();
+}
+
+class _LoginFormScreenState extends State<LoginFormScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isLoading = false;
 
-  late final AnimationController _animController;
-  late final Animation<double> _fadeAnim;
-  late final Animation<Offset> _slideAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    );
-    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.05),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
-    _animController.forward();
-  }
-
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
-    _animController.dispose();
     super.dispose();
   }
 
@@ -59,8 +143,9 @@ class _LoginScreenState extends State<LoginScreen>
     setState(() => _isLoading = true);
     try {
       await AuthService.signInWithEmail(email, password);
+      _goToDashboard();
     } on FirebaseAuthException catch (e) {
-      _showError(_friendlyError(e.code));
+      _showError(_friendlyLoginError(e.code));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -70,9 +155,12 @@ class _LoginScreenState extends State<LoginScreen>
     setState(() => _isLoading = true);
     try {
       final result = await AuthService.signInWithGoogle();
-      if (result == null && mounted) {
+      if (!mounted) return;
+      if (result == null) {
         setState(() => _isLoading = false);
+        return;
       }
+      _goToDashboard();
     } catch (_) {
       if (!mounted) return;
       _showError('Autentificare Google eșuată. Încearcă din nou.');
@@ -80,8 +168,16 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
+  void _goToDashboard() {
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      CupertinoPageRoute(builder: (_) => const MainShell()),
+      (_) => false,
+    );
+  }
+
   Future<void> _resetPassword() async {
-    final email = _emailController.text.trim();
+    final email = _emailController.text.trim().toLowerCase();
     if (email.isEmpty) {
       _showError('Introdu email-ul mai întâi.');
       return;
@@ -90,11 +186,11 @@ class _LoginScreenState extends State<LoginScreen>
       await AuthService.resetPassword(email);
       _showInfo('Email de resetare trimis la $email');
     } on FirebaseAuthException catch (e) {
-      _showError(_friendlyError(e.code));
+      _showError(_friendlyLoginError(e.code));
     }
   }
 
-  String _friendlyError(String code) {
+  String _friendlyLoginError(String code) {
     switch (code) {
       case 'user-not-found':
         return 'Nu există un cont cu acest email.';
@@ -103,8 +199,6 @@ class _LoginScreenState extends State<LoginScreen>
         return 'Email sau parolă incorectă.';
       case 'invalid-email':
         return 'Adresa de email nu este validă.';
-      case 'user-disabled':
-        return 'Contul a fost dezactivat.';
       case 'too-many-requests':
         return 'Prea multe încercări. Încearcă mai târziu.';
       case 'network-request-failed':
@@ -134,158 +228,135 @@ class _LoginScreenState extends State<LoginScreen>
   void _showError(String msg) => _showDialog('Eroare', msg);
   void _showInfo(String msg) => _showDialog('Info', msg);
 
-  void _openRegister() {
-    HapticFeedback.selectionClick();
-    Navigator.push(
-      context,
-      CupertinoPageRoute(builder: (_) => const RegisterScreen()),
-    );
-  }
-
-  Widget _buildActiveCard() {
-    return Transform.rotate(
-      angle: -0.045,
-      child: _AuthPanel(
-        width: 440,
-        child: Transform.rotate(
-          angle: 0.045,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 4),
-              Text(
-                'Login here',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: '.SF Pro Display',
-                  fontSize: 47,
-                  fontWeight: FontWeight.w800,
-                  color: _AuthPalette.blueStrong,
-                  letterSpacing: -0.8,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                "Welcome back you've\nbeen missed!",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: '.SF Pro Display',
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  height: 1.3,
-                  color: _AuthPalette.textDark,
-                ),
-              ),
-              const SizedBox(height: 24),
-              _AuthField(
-                controller: _emailController,
-                hint: 'Email',
-                keyboardType: TextInputType.emailAddress,
-                outlined: true,
-              ),
-              const SizedBox(height: 14),
-              _AuthField(
-                controller: _passwordController,
-                hint: 'Password',
-                obscureText: _obscurePassword,
-                suffix: GestureDetector(
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    setState(() => _obscurePassword = !_obscurePassword);
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 14),
-                    child: Icon(
-                      _obscurePassword
-                          ? CupertinoIcons.eye
-                          : CupertinoIcons.eye_slash,
-                      size: 18,
-                      color: _AuthPalette.textMuted,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  minimumSize: Size.zero,
-                  onPressed: _isLoading ? null : _resetPassword,
-                  child: Text(
-                    'Forgot your password?',
-                    style: TextStyle(
-                      color: _AuthPalette.blueStrong,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              _PrimaryAuthButton(
-                label: 'Sign in',
-                loading: _isLoading,
-                onPressed: _isLoading ? null : _signIn,
-              ),
-              const SizedBox(height: 18),
-              Center(
-                child: GestureDetector(
-                  onTap: _openRegister,
-                  child: RichText(
-                    text: TextSpan(
-                      style: TextStyle(
-                        fontFamily: '.SF Pro Text',
-                        fontSize: 16,
-                        color: _AuthPalette.textMuted,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      children: [
-                        const TextSpan(text: 'Create new account '),
-                        TextSpan(
-                          text: 'Register',
-                          style: TextStyle(
-                            color: _AuthPalette.textDark,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 22),
-              _SocialAuthRow(
-                enabled: !_isLoading,
-                onGoogleTap: _signInWithGoogle,
-                onOtherTap: () => _showInfo('Facebook și Apple vin curând.'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
-
     return Scaffold(
       body: _AuthBackground(
         child: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeAnim,
-            child: SlideTransition(
-              position: _slideAnim,
-              child: _AuthSceneLayout(
-                leftCard: _DiscoverSideCard(onPrimaryTap: () {}),
-                centerCard: _buildActiveCard(),
-                rightCard: _RegisterPreviewCard(onPrimaryTap: _openRegister),
-                mobileTop: const _BacHeroShowcase(),
-                mobileCard: _buildActiveCard(),
-              ),
-            ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final maxWidth = constraints.maxWidth >= 700 ? 640.0 : 460.0;
+              return Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: maxWidth),
+                    child: _AuthPanel(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _BackButtonRow(onTap: () => Navigator.pop(context)),
+                          Text(
+                            'Login',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: '.SF Pro Display',
+                              fontSize: 44,
+                              fontWeight: FontWeight.w800,
+                              color: _AuthColors.blueStrong,
+                              letterSpacing: -0.6,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Lucrează un subiect :)',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: '.SF Pro Display',
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: _AuthColors.textDark,
+                              height: 1.3,
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+                          _AuthField(
+                            controller: _emailController,
+                            hint: 'Email',
+                            keyboardType: TextInputType.emailAddress,
+                            outlined: true,
+                          ),
+                          const SizedBox(height: 12),
+                          _AuthField(
+                            controller: _passwordController,
+                            hint: 'Password',
+                            obscureText: _obscurePassword,
+                            suffix: GestureDetector(
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                setState(
+                                  () => _obscurePassword = !_obscurePassword,
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 14),
+                                child: Icon(
+                                  _obscurePassword
+                                      ? CupertinoIcons.eye
+                                      : CupertinoIcons.eye_slash,
+                                  size: 18,
+                                  color: _AuthColors.textMuted,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: CupertinoButton(
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              onPressed: _isLoading ? null : _resetPassword,
+                              child: Text(
+                                'Forgot your password?',
+                                style: TextStyle(
+                                  color: _AuthColors.blueStrong,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          _PrimaryAuthButton(
+                            label: 'Sign in',
+                            loading: _isLoading,
+                            onPressed: _isLoading ? null : _signIn,
+                          ),
+                          const SizedBox(height: 16),
+                          Center(
+                            child: GestureDetector(
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                Navigator.pushReplacement(
+                                  context,
+                                  CupertinoPageRoute(
+                                    builder: (_) => const RegisterScreen(),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                'Create new account',
+                                style: TextStyle(
+                                  color: _AuthColors.textDark,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          _SocialAuthRow(
+                            enabled: !_isLoading,
+                            onGoogleTap: _signInWithGoogle,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -300,8 +371,7 @@ class RegisterScreen extends StatefulWidget {
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen>
-    with SingleTickerProviderStateMixin {
+class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmController = TextEditingController();
@@ -309,31 +379,11 @@ class _RegisterScreenState extends State<RegisterScreen>
   bool _obscureConfirm = true;
   bool _isLoading = false;
 
-  late final AnimationController _animController;
-  late final Animation<double> _fadeAnim;
-  late final Animation<Offset> _slideAnim;
-
-  @override
-  void initState() {
-    super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    );
-    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.05),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
-    _animController.forward();
-  }
-
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmController.dispose();
-    _animController.dispose();
     super.dispose();
   }
 
@@ -358,11 +408,10 @@ class _RegisterScreenState extends State<RegisterScreen>
     setState(() => _isLoading = true);
     try {
       await AuthService.registerWithEmail(email, password);
-      final fallbackName = email.split('@').first;
-      await AuthService.updateDisplayName(fallbackName);
-      // StreamBuilder-ul din root va muta utilizatorul în app.
+      await AuthService.updateDisplayName(email.split('@').first);
+      _goToDashboard();
     } on FirebaseAuthException catch (e) {
-      _showError(_friendlyError(e.code));
+      _showError(_friendlyRegisterError(e.code));
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -370,7 +419,13 @@ class _RegisterScreenState extends State<RegisterScreen>
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
     try {
-      await AuthService.signInWithGoogle();
+      final result = await AuthService.signInWithGoogle();
+      if (!mounted) return;
+      if (result == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+      _goToDashboard();
     } catch (_) {
       if (!mounted) return;
       _showError('Autentificare Google eșuată. Încearcă din nou.');
@@ -378,14 +433,22 @@ class _RegisterScreenState extends State<RegisterScreen>
     }
   }
 
-  String _friendlyError(String code) {
+  void _goToDashboard() {
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      CupertinoPageRoute(builder: (_) => const MainShell()),
+      (_) => false,
+    );
+  }
+
+  String _friendlyRegisterError(String code) {
     switch (code) {
       case 'email-already-in-use':
         return 'Există deja un cont cu acest email.';
       case 'invalid-email':
         return 'Adresa de email nu este validă.';
       case 'weak-password':
-        return 'Parola este prea slabă. Folosește cel puțin 6 caractere.';
+        return 'Parola este prea slabă.';
       case 'network-request-failed':
         return 'Eroare de rețea. Verifică conexiunea.';
       default:
@@ -411,158 +474,155 @@ class _RegisterScreenState extends State<RegisterScreen>
   }
 
   void _showError(String msg) => _showDialog('Eroare', msg);
-  void _showInfo(String msg) => _showDialog('Info', msg);
-
-  Widget _buildActiveCard() {
-    return _AuthPanel(
-      width: 440,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const SizedBox(height: 4),
-          Text(
-            'Create Account',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: '.SF Pro Display',
-              fontSize: 44,
-              fontWeight: FontWeight.w800,
-              color: _AuthPalette.blueStrong,
-              letterSpacing: -0.6,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Create an account so you can\nexplore all Bac Pro subjects',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: '.SF Pro Text',
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              height: 1.3,
-              color: _AuthPalette.textDark,
-            ),
-          ),
-          const SizedBox(height: 24),
-          _AuthField(
-            controller: _emailController,
-            hint: 'Email',
-            keyboardType: TextInputType.emailAddress,
-            outlined: true,
-          ),
-          const SizedBox(height: 14),
-          _AuthField(
-            controller: _passwordController,
-            hint: 'Password',
-            obscureText: _obscurePassword,
-            suffix: GestureDetector(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                setState(() => _obscurePassword = !_obscurePassword);
-              },
-              child: Padding(
-                padding: const EdgeInsets.only(right: 14),
-                child: Icon(
-                  _obscurePassword
-                      ? CupertinoIcons.eye
-                      : CupertinoIcons.eye_slash,
-                  size: 18,
-                  color: _AuthPalette.textMuted,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          _AuthField(
-            controller: _confirmController,
-            hint: 'Confirm Password',
-            obscureText: _obscureConfirm,
-            suffix: GestureDetector(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                setState(() => _obscureConfirm = !_obscureConfirm);
-              },
-              child: Padding(
-                padding: const EdgeInsets.only(right: 14),
-                child: Icon(
-                  _obscureConfirm
-                      ? CupertinoIcons.eye
-                      : CupertinoIcons.eye_slash,
-                  size: 18,
-                  color: _AuthPalette.textMuted,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 18),
-          _PrimaryAuthButton(
-            label: 'Sign up',
-            loading: _isLoading,
-            onPressed: _isLoading ? null : _register,
-          ),
-          const SizedBox(height: 18),
-          Center(
-            child: GestureDetector(
-              onTap: () {
-                HapticFeedback.selectionClick();
-                Navigator.pop(context);
-              },
-              child: RichText(
-                text: TextSpan(
-                  style: TextStyle(
-                    fontFamily: '.SF Pro Text',
-                    fontSize: 16,
-                    color: _AuthPalette.textMuted,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  children: [
-                    const TextSpan(text: 'Already have an account? '),
-                    TextSpan(
-                      text: 'Sign in',
-                      style: TextStyle(
-                        color: _AuthPalette.textDark,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 22),
-          _SocialAuthRow(
-            enabled: !_isLoading,
-            onGoogleTap: _signInWithGoogle,
-            onOtherTap: () => _showInfo('Facebook și Apple vin curând.'),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
-
     return Scaffold(
       body: _AuthBackground(
         child: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeAnim,
-            child: SlideTransition(
-              position: _slideAnim,
-              child: _AuthSceneLayout(
-                leftCard: _DiscoverSideCard(
-                  onPrimaryTap: () => Navigator.pop(context),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final maxWidth = constraints.maxWidth >= 700 ? 640.0 : 460.0;
+              return SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxWidth),
+                      child: _AuthPanel(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _BackButtonRow(onTap: () => Navigator.pop(context)),
+                            Text(
+                              'Create Account',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: '.SF Pro Display',
+                                fontSize: 34,
+                                fontWeight: FontWeight.w800,
+                                color: _AuthColors.blueStrong,
+                                letterSpacing: -0.6,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              'Creează un cont pentru a salva\nprogresul și sesiunile tale BAC',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: '.SF Pro Display',
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: _AuthColors.textDark,
+                                height: 1.3,
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            _AuthField(
+                              controller: _emailController,
+                              hint: 'Email',
+                              keyboardType: TextInputType.emailAddress,
+                              outlined: true,
+                            ),
+                            const SizedBox(height: 12),
+                            _AuthField(
+                              controller: _passwordController,
+                              hint: 'Password',
+                              obscureText: _obscurePassword,
+                              suffix: GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  setState(
+                                    () => _obscurePassword = !_obscurePassword,
+                                  );
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 14),
+                                  child: Icon(
+                                    _obscurePassword
+                                        ? CupertinoIcons.eye
+                                        : CupertinoIcons.eye_slash,
+                                    size: 18,
+                                    color: _AuthColors.textMuted,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            _AuthField(
+                              controller: _confirmController,
+                              hint: 'Confirm Password',
+                              obscureText: _obscureConfirm,
+                              suffix: GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  setState(
+                                    () => _obscureConfirm = !_obscureConfirm,
+                                  );
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 14),
+                                  child: Icon(
+                                    _obscureConfirm
+                                        ? CupertinoIcons.eye
+                                        : CupertinoIcons.eye_slash,
+                                    size: 18,
+                                    color: _AuthColors.textMuted,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            _PrimaryAuthButton(
+                              label: 'Sign up',
+                              loading: _isLoading,
+                              onPressed: _isLoading ? null : _register,
+                            ),
+                            const SizedBox(height: 18),
+                            Text(
+                              'Already have an account',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: _AuthColors.textMuted,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 18,
+                              ),
+                            ),
+                            const SizedBox(height: 14),
+                            GestureDetector(
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                Navigator.pushReplacement(
+                                  context,
+                                  CupertinoPageRoute(
+                                    builder: (_) => const LoginFormScreen(),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                'Sign in',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: _AuthColors.textDark,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            _SocialAuthRow(
+                              enabled: !_isLoading,
+                              onGoogleTap: _signInWithGoogle,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
-                centerCard: _buildActiveCard(),
-                rightCard: _LoginPreviewCard(
-                  onPrimaryTap: () => Navigator.pop(context),
-                ),
-                mobileTop: const _BacHeroShowcase(),
-                mobileCard: _buildActiveCard(),
-              ),
-            ),
+              );
+            },
           ),
         ),
       ),
@@ -570,74 +630,271 @@ class _RegisterScreenState extends State<RegisterScreen>
   }
 }
 
-class _AuthSceneLayout extends StatelessWidget {
-  final Widget leftCard;
-  final Widget centerCard;
-  final Widget rightCard;
-  final Widget mobileTop;
-  final Widget mobileCard;
+class _EntryCard extends StatelessWidget {
+  final VoidCallback onLogin;
+  final VoidCallback onSignup;
 
-  const _AuthSceneLayout({
-    required this.leftCard,
-    required this.centerCard,
-    required this.rightCard,
-    required this.mobileTop,
-    required this.mobileCard,
-  });
+  const _EntryCard({required this.onLogin, required this.onSignup});
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth >= 1180) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(22, 18, 22, 30),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1420),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Positioned(
-                      top: -10,
-                      right: 290,
-                      child: _FloatingRoundIcon(
-                        icon: CupertinoIcons.lock_fill,
-                        size: 112,
-                        color: const Color(0xFF5B2BFF),
-                      ),
-                    ),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(child: leftCard),
-                        const SizedBox(width: 22),
-                        Expanded(child: centerCard),
-                        const SizedBox(width: 22),
-                        Expanded(child: rightCard),
-                      ],
-                    ),
-                  ],
-                ),
+    return _AuthPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: 220,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE7ECFA),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: const Color(0xFFD3DCF7)),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(17),
+              child: Image.asset(
+                'assets/images/login_hero.png',
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
               ),
             ),
-          );
-        }
-
-        return SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(18, 14, 18, 26),
-          child: Column(
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'BacPro',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: '.SF Pro Display',
+              fontSize: 52,
+              fontWeight: FontWeight.w800,
+              color: _AuthColors.blueStrong,
+              height: 1.05,
+              letterSpacing: -0.7,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Singura aplicație dedicată elevilor',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: '.SF Pro Text',
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+              color: _AuthColors.textDark,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 28),
+          Row(
             children: [
-              mobileTop,
-              const SizedBox(height: 18),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 520),
-                child: mobileCard,
+              Expanded(
+                child: CupertinoButton(
+                  color: _AuthColors.blueStrong,
+                  borderRadius: BorderRadius.circular(14),
+                  onPressed: onLogin,
+                  child: const Text(
+                    'Login',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: '.SF Pro Display',
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: CupertinoButton(
+                  color: const Color(0xFFECEFF6),
+                  borderRadius: BorderRadius.circular(14),
+                  onPressed: onSignup,
+                  child: Text(
+                    'Signup',
+                    style: TextStyle(
+                      color: _AuthColors.textDark,
+                      fontFamily: '.SF Pro Display',
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
-        );
-      },
+        ],
+      ),
+    );
+  }
+}
+
+class _LoginPreviewCard extends StatelessWidget {
+  final VoidCallback onLogin;
+  final VoidCallback onSignup;
+
+  const _LoginPreviewCard({required this.onLogin, required this.onSignup});
+
+  @override
+  Widget build(BuildContext context) {
+    return _AuthPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Login',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: '.SF Pro Display',
+              fontSize: 44,
+              fontWeight: FontWeight.w800,
+              color: _AuthColors.blueStrong,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Lucrează un subiect :)',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: '.SF Pro Display',
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: _AuthColors.textDark,
+            ),
+          ),
+          const SizedBox(height: 20),
+          const _PreviewField(hint: 'Email', outlined: true),
+          const SizedBox(height: 10),
+          const _PreviewField(hint: 'Password'),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              'Forgot your password?',
+              style: TextStyle(
+                color: _AuthColors.blueStrong,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          CupertinoButton(
+            color: _AuthColors.blueStrong,
+            borderRadius: BorderRadius.circular(14),
+            onPressed: onLogin,
+            child: const Text(
+              'Sign in',
+              style: TextStyle(
+                color: Colors.white,
+                fontFamily: '.SF Pro Display',
+                fontSize: 30,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          GestureDetector(
+            onTap: onSignup,
+            child: Text(
+              'Create new account',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: _AuthColors.textDark,
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          const _SocialPreviewRow(),
+        ],
+      ),
+    );
+  }
+}
+
+class _SignupPreviewCard extends StatelessWidget {
+  final VoidCallback onSignup;
+  final VoidCallback onLogin;
+
+  const _SignupPreviewCard({required this.onSignup, required this.onLogin});
+
+  @override
+  Widget build(BuildContext context) {
+    return _AuthPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Create Account',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: '.SF Pro Display',
+              fontSize: 34,
+              fontWeight: FontWeight.w800,
+              color: _AuthColors.blueStrong,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Creează cont pentru progresul tău BAC',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: '.SF Pro Display',
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: _AuthColors.textDark,
+              height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 20),
+          const _PreviewField(hint: 'Email', outlined: true),
+          const SizedBox(height: 10),
+          const _PreviewField(hint: 'Password'),
+          const SizedBox(height: 10),
+          const _PreviewField(hint: 'Confirm Password'),
+          const SizedBox(height: 12),
+          CupertinoButton(
+            color: _AuthColors.blueStrong,
+            borderRadius: BorderRadius.circular(14),
+            onPressed: onSignup,
+            child: const Text(
+              'Sign up',
+              style: TextStyle(
+                color: Colors.white,
+                fontFamily: '.SF Pro Display',
+                fontSize: 30,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Already have an account',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: _AuthColors.textMuted,
+              fontWeight: FontWeight.w600,
+              fontSize: 18,
+            ),
+          ),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: onLogin,
+            child: Text(
+              'Sign in',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: _AuthColors.textDark,
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const _SocialPreviewRow(),
+        ],
+      ),
     );
   }
 }
@@ -660,19 +917,19 @@ class _AuthBackground extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           const _Blob(
-            width: 420,
+            width: 430,
             height: 520,
             color: Color(0x3348A6FF),
             alignment: Alignment.bottomLeft,
-            dx: -110,
+            dx: -100,
             dy: 120,
           ),
           const _Blob(
-            width: 360,
+            width: 380,
             height: 430,
             color: Color(0x224CA6FF),
             alignment: Alignment.topRight,
-            dx: 80,
+            dx: 82,
             dy: -90,
           ),
           const _Blob(
@@ -680,8 +937,8 @@ class _AuthBackground extends StatelessWidget {
             height: 220,
             color: Color(0x663EC7AF),
             alignment: Alignment.bottomRight,
-            dx: 80,
-            dy: 70,
+            dx: 78,
+            dy: 66,
           ),
           child,
         ],
@@ -718,7 +975,7 @@ class _Blob extends StatelessWidget {
           height: height,
           decoration: BoxDecoration(
             color: color,
-            borderRadius: BorderRadius.circular(height * 0.5),
+            borderRadius: BorderRadius.circular(height * 0.52),
           ),
         ),
       ),
@@ -726,123 +983,16 @@ class _Blob extends StatelessWidget {
   }
 }
 
-class _BacHeroShowcase extends StatelessWidget {
-  const _BacHeroShowcase();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      constraints: const BoxConstraints(maxWidth: 520),
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(24),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: Colors.white.withAlpha(70)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(
-                  CupertinoIcons.doc_text_fill,
-                  color: _AuthPalette.blueStrong,
-                  size: 26,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Bac Pro',
-                  style: TextStyle(
-                    fontFamily: '.SF Pro Display',
-                    fontSize: 30,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: -0.4,
-                  ),
-                ),
-              ),
-              const _FloatingRoundIcon(
-                icon: CupertinoIcons.sparkles,
-                size: 52,
-                color: Color(0xFF4B86FF),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: const [
-              _HeroBadge(icon: CupertinoIcons.book_fill, label: 'Subiecte PDF'),
-              _HeroBadge(icon: CupertinoIcons.clock_fill, label: 'Timer 3h'),
-              _HeroBadge(
-                icon: CupertinoIcons.chart_bar_alt_fill,
-                label: 'Coach pe barem',
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroBadge extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  const _HeroBadge({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(28),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withAlpha(74)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 12, color: Colors.white),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              fontFamily: '.SF Pro Text',
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _AuthPanel extends StatelessWidget {
   final Widget child;
-  final double width;
-  const _AuthPanel({required this.child, required this.width});
+  const _AuthPanel({required this.child});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: width,
-      padding: const EdgeInsets.fromLTRB(26, 28, 26, 24),
+      padding: const EdgeInsets.fromLTRB(24, 26, 24, 22),
       decoration: BoxDecoration(
-        color: _AuthPalette.card,
+        color: _AuthColors.card,
         borderRadius: BorderRadius.circular(34),
         boxShadow: [
           BoxShadow(
@@ -877,12 +1027,12 @@ class _AuthField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 62,
+      height: 56,
       decoration: BoxDecoration(
         color: outlined ? Colors.white : const Color(0xFFECEFF6),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: outlined ? _AuthPalette.blueStrong : const Color(0xFFECEFF6),
+          color: outlined ? _AuthColors.blueStrong : const Color(0xFFECEFF6),
           width: outlined ? 2 : 1,
         ),
       ),
@@ -895,15 +1045,15 @@ class _AuthField extends StatelessWidget {
               keyboardType: keyboardType,
               style: TextStyle(
                 fontFamily: '.SF Pro Text',
-                fontSize: 27,
+                fontSize: 19,
                 fontWeight: FontWeight.w500,
-                color: _AuthPalette.textDark,
+                color: _AuthColors.textDark,
               ),
               decoration: InputDecoration(
                 hintText: hint,
                 hintStyle: TextStyle(
-                  color: _AuthPalette.textMuted,
-                  fontSize: 27,
+                  color: _AuthColors.textMuted,
+                  fontSize: 19,
                   fontWeight: FontWeight.w500,
                 ),
                 border: InputBorder.none,
@@ -932,9 +1082,9 @@ class _PrimaryAuthButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 64,
+      height: 56,
       child: CupertinoButton(
-        color: _AuthPalette.blueStrong,
+        color: _AuthColors.blueStrong,
         borderRadius: BorderRadius.circular(14),
         onPressed: onPressed,
         child: loading
@@ -942,12 +1092,34 @@ class _PrimaryAuthButton extends StatelessWidget {
             : Text(
                 label,
                 style: const TextStyle(
-                  fontFamily: '.SF Pro Display',
-                  fontSize: 35,
-                  fontWeight: FontWeight.w700,
                   color: Colors.white,
+                  fontFamily: '.SF Pro Display',
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
+      ),
+    );
+  }
+}
+
+class _BackButtonRow extends StatelessWidget {
+  final VoidCallback onTap;
+  const _BackButtonRow({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: CupertinoButton(
+        padding: EdgeInsets.zero,
+        minimumSize: Size.zero,
+        onPressed: onTap,
+        child: Icon(
+          CupertinoIcons.back,
+          size: 24,
+          color: _AuthColors.blueStrong,
+        ),
       ),
     );
   }
@@ -956,13 +1128,8 @@ class _PrimaryAuthButton extends StatelessWidget {
 class _SocialAuthRow extends StatelessWidget {
   final bool enabled;
   final VoidCallback onGoogleTap;
-  final VoidCallback onOtherTap;
 
-  const _SocialAuthRow({
-    required this.enabled,
-    required this.onGoogleTap,
-    required this.onOtherTap,
-  });
+  const _SocialAuthRow({required this.enabled, required this.onGoogleTap});
 
   @override
   Widget build(BuildContext context) {
@@ -971,13 +1138,12 @@ class _SocialAuthRow extends StatelessWidget {
         Text(
           'Or continue with',
           style: TextStyle(
-            fontFamily: '.SF Pro Display',
-            fontSize: 16,
+            color: _AuthColors.blueStrong,
             fontWeight: FontWeight.w700,
-            color: _AuthPalette.blueStrong,
+            fontSize: 16,
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -989,27 +1155,32 @@ class _SocialAuthRow extends StatelessWidget {
                 size: const Size(20, 20),
               ),
             ),
-            const SizedBox(width: 12),
-            _SocialIconSquare(
-              enabled: enabled,
-              onTap: onOtherTap,
-              child: const Icon(
-                CupertinoIcons.person_2_fill,
-                size: 22,
-                color: Color(0xFF111111),
-              ),
-            ),
-            const SizedBox(width: 12),
-            _SocialIconSquare(
-              enabled: enabled,
-              onTap: onOtherTap,
-              child: const Icon(
-                Icons.apple,
-                size: 24,
-                color: Color(0xFF111111),
-              ),
-            ),
           ],
+        ),
+      ],
+    );
+  }
+}
+
+class _SocialPreviewRow extends StatelessWidget {
+  const _SocialPreviewRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          'Or continue with',
+          style: TextStyle(
+            color: _AuthColors.blueStrong,
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: const [_StaticSocialIcon(child: _StaticGoogleIcon())],
         ),
       ],
     );
@@ -1038,246 +1209,36 @@ class _SocialIconSquare extends StatelessWidget {
           : null,
       child: Opacity(
         opacity: enabled ? 1 : 0.5,
-        child: Container(
-          width: 56,
-          height: 48,
-          decoration: BoxDecoration(
-            color: const Color(0xFFECECEC),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Center(child: child),
-        ),
+        child: _StaticSocialIcon(child: child),
       ),
     );
   }
 }
 
-class _DiscoverSideCard extends StatelessWidget {
-  final VoidCallback onPrimaryTap;
-  const _DiscoverSideCard({required this.onPrimaryTap});
+class _StaticSocialIcon extends StatelessWidget {
+  final Widget child;
+  const _StaticSocialIcon({required this.child});
 
   @override
   Widget build(BuildContext context) {
-    return _AuthPanel(
-      width: 420,
-      child: Column(
-        children: [
-          const SizedBox(height: 10),
-          Container(
-            width: 190,
-            height: 140,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE9F0FF),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: const Icon(
-              CupertinoIcons.book_circle_fill,
-              color: Color(0xFF2A53CC),
-              size: 84,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'Discover Your\nBest Grade Here',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: '.SF Pro Display',
-              fontSize: 50,
-              fontWeight: FontWeight.w800,
-              color: _AuthPalette.blueStrong,
-              letterSpacing: -0.6,
-              height: 1.05,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Explore subiecte oficiale și bareme\npentru profilul tău.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: '.SF Pro Text',
-              fontSize: 20,
-              color: _AuthPalette.textDark,
-              height: 1.3,
-            ),
-          ),
-          const SizedBox(height: 26),
-          SizedBox(
-            width: double.infinity,
-            child: CupertinoButton(
-              color: _AuthPalette.blueStrong,
-              borderRadius: BorderRadius.circular(14),
-              onPressed: onPrimaryTap,
-              child: const Text(
-                'Login',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontFamily: '.SF Pro Display',
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'Register',
-            style: TextStyle(
-              color: _AuthPalette.textDark,
-              fontFamily: '.SF Pro Display',
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
+    return Container(
+      width: 56,
+      height: 48,
+      decoration: BoxDecoration(
+        color: const Color(0xFFECECEC),
+        borderRadius: BorderRadius.circular(12),
       ),
+      child: Center(child: child),
     );
   }
 }
 
-class _RegisterPreviewCard extends StatelessWidget {
-  final VoidCallback onPrimaryTap;
-  const _RegisterPreviewCard({required this.onPrimaryTap});
+class _StaticGoogleIcon extends StatelessWidget {
+  const _StaticGoogleIcon();
 
   @override
   Widget build(BuildContext context) {
-    return _AuthPanel(
-      width: 420,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Create Account',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: '.SF Pro Display',
-              fontSize: 42,
-              fontWeight: FontWeight.w800,
-              color: _AuthPalette.blueStrong,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Create an account so you can explore all the existing subjects',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: '.SF Pro Text',
-              fontSize: 18,
-              color: _AuthPalette.textDark,
-              height: 1.3,
-            ),
-          ),
-          const SizedBox(height: 22),
-          const _PreviewField(hint: 'Email', outlined: true),
-          const SizedBox(height: 12),
-          const _PreviewField(hint: 'Password'),
-          const SizedBox(height: 12),
-          const _PreviewField(hint: 'Confirm Password'),
-          const SizedBox(height: 20),
-          CupertinoButton(
-            color: _AuthPalette.blueStrong,
-            borderRadius: BorderRadius.circular(14),
-            onPressed: onPrimaryTap,
-            child: const Text(
-              'Sign up',
-              style: TextStyle(
-                color: Colors.white,
-                fontFamily: '.SF Pro Display',
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Already have an account',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: '.SF Pro Text',
-              fontSize: 17,
-              color: _AuthPalette.textMuted,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _SocialAuthRow(
-            enabled: true,
-            onGoogleTap: onPrimaryTap,
-            onOtherTap: onPrimaryTap,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _LoginPreviewCard extends StatelessWidget {
-  final VoidCallback onPrimaryTap;
-  const _LoginPreviewCard({required this.onPrimaryTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Transform.rotate(
-      angle: -0.03,
-      child: _AuthPanel(
-        width: 420,
-        child: Transform.rotate(
-          angle: 0.03,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Login here',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: '.SF Pro Display',
-                  fontSize: 44,
-                  fontWeight: FontWeight.w800,
-                  color: _AuthPalette.blueStrong,
-                  letterSpacing: -0.6,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                "Welcome back you've\nbeen missed!",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: '.SF Pro Display',
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: _AuthPalette.textDark,
-                ),
-              ),
-              const SizedBox(height: 22),
-              const _PreviewField(hint: 'Email', outlined: true),
-              const SizedBox(height: 12),
-              const _PreviewField(hint: 'Password'),
-              const SizedBox(height: 16),
-              CupertinoButton(
-                color: _AuthPalette.blueStrong,
-                borderRadius: BorderRadius.circular(14),
-                onPressed: onPrimaryTap,
-                child: const Text(
-                  'Sign in',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontFamily: '.SF Pro Display',
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              _SocialAuthRow(
-                enabled: true,
-                onGoogleTap: onPrimaryTap,
-                onOtherTap: onPrimaryTap,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+    return CustomPaint(painter: _GoogleLogoPainter(), size: const Size(20, 20));
   }
 }
 
@@ -1294,17 +1255,17 @@ class _PreviewField extends StatelessWidget {
         color: outlined ? Colors.white : const Color(0xFFECEFF6),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: outlined ? _AuthPalette.blueStrong : const Color(0xFFECEFF6),
+          color: outlined ? _AuthColors.blueStrong : const Color(0xFFECEFF6),
           width: outlined ? 2 : 1,
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
       alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Text(
         hint,
         style: TextStyle(
-          color: _AuthPalette.textMuted,
-          fontSize: 26,
+          color: _AuthColors.textMuted,
+          fontSize: 22,
           fontWeight: FontWeight.w500,
         ),
       ),
@@ -1312,12 +1273,12 @@ class _PreviewField extends StatelessWidget {
   }
 }
 
-class _FloatingRoundIcon extends StatelessWidget {
+class _FloatingSymbol extends StatelessWidget {
   final IconData icon;
   final double size;
   final Color color;
 
-  const _FloatingRoundIcon({
+  const _FloatingSymbol({
     required this.icon,
     required this.size,
     required this.color,
@@ -1333,13 +1294,13 @@ class _FloatingRoundIcon extends StatelessWidget {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withAlpha(36),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: Colors.black.withAlpha(34),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Icon(icon, size: size * 0.46, color: Colors.white),
+      child: Icon(icon, size: size * 0.45, color: Colors.white),
     );
   }
 }
@@ -1349,8 +1310,7 @@ class _GoogleLogoPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = math.min(size.width, size.height) / 2;
-    final fill = Paint()..color = const Color(0xFFF4F4F4);
-    canvas.drawCircle(center, radius, fill);
+    canvas.drawCircle(center, radius, Paint()..color = const Color(0xFFF4F4F4));
 
     final textPainter = TextPainter(
       text: const TextSpan(
@@ -1378,7 +1338,7 @@ class _GoogleLogoPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-class _AuthPalette {
+class _AuthColors {
   static const Color card = Color(0xFFF3F5FB);
   static const Color blueStrong = Color(0xFF2A4CC8);
   static const Color textDark = Color(0xFF111111);

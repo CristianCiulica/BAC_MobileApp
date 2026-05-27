@@ -12,6 +12,7 @@ import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../widgets/common.dart';
 import 'account_screens.dart';
+import 'login_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -282,6 +283,13 @@ class AppDrawer extends StatelessWidget {
                         onTap: () async {
                           Navigator.pop(context);
                           await AuthService.signOut();
+                          if (!context.mounted) return;
+                          Navigator.of(context).pushAndRemoveUntil(
+                            CupertinoPageRoute(
+                              builder: (_) => const LoginScreen(),
+                            ),
+                            (_) => false,
+                          );
                         },
                       ),
                     ],
