@@ -178,137 +178,154 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final isKeyboardOpen = keyboardInset > 0;
+
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: _AuthBackground(
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final maxWidth = constraints.maxWidth >= 700 ? 640.0 : 460.0;
-              final panelHeight = (constraints.maxHeight - 20).clamp(
-                560.0,
-                constraints.maxHeight,
-              );
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 10),
+              final maxWidth = constraints.maxWidth >= 700 ? 500.0 : 420.0;
+              return AnimatedPadding(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                padding: EdgeInsets.only(bottom: keyboardInset),
+                child: SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: maxWidth),
-                    child: SizedBox(
-                      height: panelHeight,
-                      child: _AuthPanel(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _BackButtonRow(onTap: () => Navigator.pop(context)),
-                            const Spacer(flex: 1),
-                            Text(
-                              'Autentificare',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontFamily: '.SF Pro Display',
-                                fontSize: 44,
-                                fontWeight: FontWeight.w800,
-                                color: _AuthColors.blueStrong,
-                                letterSpacing: -0.6,
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight - 28,
+                    ),
+                    child: Align(
+                      alignment: isKeyboardOpen
+                          ? Alignment.topCenter
+                          : Alignment.center,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: maxWidth),
+                        child: _AuthPanel(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _BackButtonRow(
+                                onTap: () => Navigator.pop(context),
                               ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Lucrează un subiect :)',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontFamily: '.SF Pro Display',
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: _AuthColors.textDark,
-                                height: 1.3,
-                              ),
-                            ),
-                            const SizedBox(height: 22),
-                            _AuthField(
-                              controller: _emailController,
-                              hint: 'Email',
-                              keyboardType: TextInputType.emailAddress,
-                              outlined: true,
-                            ),
-                            const SizedBox(height: 12),
-                            _AuthField(
-                              controller: _passwordController,
-                              hint: 'Parolă',
-                              obscureText: _obscurePassword,
-                              suffix: GestureDetector(
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  setState(
-                                    () => _obscurePassword = !_obscurePassword,
-                                  );
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.only(right: 14),
-                                  child: Icon(
-                                    _obscurePassword
-                                        ? CupertinoIcons.eye
-                                        : CupertinoIcons.eye_slash,
-                                    size: 18,
-                                    color: _AuthColors.textMuted,
-                                  ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Autentificare',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: '.SF Pro Display',
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.w800,
+                                  color: _AuthColors.blueStrong,
+                                  letterSpacing: -0.5,
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: CupertinoButton(
-                                padding: EdgeInsets.zero,
-                                minimumSize: Size.zero,
-                                onPressed: _isLoading ? null : _resetPassword,
-                                child: Text(
-                                  'Ai uitat parola?',
-                                  style: TextStyle(
-                                    color: _AuthColors.blueStrong,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 15,
-                                  ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Lucrează un subiect :)',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: '.SF Pro Display',
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: _AuthColors.textDark,
+                                  height: 1.25,
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 10),
-                            _PrimaryAuthButton(
-                              label: 'Intră în cont',
-                              loading: _isLoading,
-                              onPressed: _isLoading ? null : _signIn,
-                            ),
-                            const SizedBox(height: 16),
-                            Center(
-                              child: GestureDetector(
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  Navigator.pushReplacement(
-                                    context,
-                                    CupertinoPageRoute(
-                                      builder: (_) => const RegisterScreen(),
+                              const SizedBox(height: 18),
+                              _AuthField(
+                                controller: _emailController,
+                                hint: 'Email',
+                                keyboardType: TextInputType.emailAddress,
+                                outlined: true,
+                              ),
+                              const SizedBox(height: 12),
+                              _AuthField(
+                                controller: _passwordController,
+                                hint: 'Parolă',
+                                obscureText: _obscurePassword,
+                                suffix: GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.selectionClick();
+                                    setState(
+                                      () =>
+                                          _obscurePassword = !_obscurePassword,
+                                    );
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 14),
+                                    child: Icon(
+                                      _obscurePassword
+                                          ? CupertinoIcons.eye
+                                          : CupertinoIcons.eye_slash,
+                                      size: 18,
+                                      color: _AuthColors.textMuted,
                                     ),
-                                  );
-                                },
-                                child: Text(
-                                  'Creează cont nou',
-                                  style: TextStyle(
-                                    color: _AuthColors.textDark,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 18,
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            const _AuthSectionDivider(label: 'Sau continuă cu'),
-                            const SizedBox(height: 10),
-                            _SocialAuthRow(
-                              enabled: !_isLoading,
-                              onGoogleTap: _signInWithGoogle,
-                            ),
-                            const Spacer(flex: 2),
-                          ],
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: CupertinoButton(
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: Size.zero,
+                                  onPressed: _isLoading ? null : _resetPassword,
+                                  child: Text(
+                                    'Ai uitat parola?',
+                                    style: TextStyle(
+                                      color: _AuthColors.blueStrong,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              _PrimaryAuthButton(
+                                label: 'Intră în cont',
+                                loading: _isLoading,
+                                onPressed: _isLoading ? null : _signIn,
+                              ),
+                              const SizedBox(height: 14),
+                              Center(
+                                child: GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.selectionClick();
+                                    Navigator.pushReplacement(
+                                      context,
+                                      CupertinoPageRoute(
+                                        builder: (_) => const RegisterScreen(),
+                                      ),
+                                    );
+                                  },
+                                  child: Text(
+                                    'Creează cont nou',
+                                    style: TextStyle(
+                                      color: _AuthColors.textDark,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 17,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              const _AuthSectionDivider(
+                                label: 'Sau continuă cu',
+                              ),
+                              const SizedBox(height: 10),
+                              _SocialAuthRow(
+                                enabled: !_isLoading,
+                                onGoogleTap: _signInWithGoogle,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -436,153 +453,170 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final isKeyboardOpen = keyboardInset > 0;
+
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: _AuthBackground(
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final maxWidth = constraints.maxWidth >= 700 ? 640.0 : 460.0;
-              final panelHeight = (constraints.maxHeight - 20).clamp(
-                580.0,
-                constraints.maxHeight,
-              );
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 10),
+              final maxWidth = constraints.maxWidth >= 700 ? 500.0 : 420.0;
+              return AnimatedPadding(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                padding: EdgeInsets.only(bottom: keyboardInset),
+                child: SingleChildScrollView(
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: maxWidth),
-                    child: SizedBox(
-                      height: panelHeight,
-                      child: _AuthPanel(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _BackButtonRow(onTap: () => Navigator.pop(context)),
-                            const Spacer(flex: 1),
-                            Text(
-                              'Creează cont',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontFamily: '.SF Pro Display',
-                                fontSize: 34,
-                                fontWeight: FontWeight.w800,
-                                color: _AuthColors.blueStrong,
-                                letterSpacing: -0.6,
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight - 28,
+                    ),
+                    child: Align(
+                      alignment: isKeyboardOpen
+                          ? Alignment.topCenter
+                          : Alignment.center,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: maxWidth),
+                        child: _AuthPanel(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _BackButtonRow(
+                                onTap: () => Navigator.pop(context),
                               ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Creează un cont pentru a salva\nprogresul și sesiunile tale BAC',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontFamily: '.SF Pro Display',
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: _AuthColors.textDark,
-                                height: 1.3,
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                            _AuthField(
-                              controller: _emailController,
-                              hint: 'Email',
-                              keyboardType: TextInputType.emailAddress,
-                              outlined: true,
-                            ),
-                            const SizedBox(height: 12),
-                            _AuthField(
-                              controller: _passwordController,
-                              hint: 'Parolă',
-                              obscureText: _obscurePassword,
-                              suffix: GestureDetector(
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  setState(
-                                    () => _obscurePassword = !_obscurePassword,
-                                  );
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.only(right: 14),
-                                  child: Icon(
-                                    _obscurePassword
-                                        ? CupertinoIcons.eye
-                                        : CupertinoIcons.eye_slash,
-                                    size: 18,
-                                    color: _AuthColors.textMuted,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            _AuthField(
-                              controller: _confirmController,
-                              hint: 'Confirmă parola',
-                              obscureText: _obscureConfirm,
-                              suffix: GestureDetector(
-                                onTap: () {
-                                  HapticFeedback.selectionClick();
-                                  setState(
-                                    () => _obscureConfirm = !_obscureConfirm,
-                                  );
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.only(right: 14),
-                                  child: Icon(
-                                    _obscureConfirm
-                                        ? CupertinoIcons.eye
-                                        : CupertinoIcons.eye_slash,
-                                    size: 18,
-                                    color: _AuthColors.textMuted,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            _PrimaryAuthButton(
-                              label: 'Creează cont',
-                              loading: _isLoading,
-                              onPressed: _isLoading ? null : _register,
-                            ),
-                            const SizedBox(height: 18),
-                            Text(
-                              'Ai deja cont',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: _AuthColors.textMuted,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 18,
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-                            GestureDetector(
-                              onTap: () {
-                                HapticFeedback.selectionClick();
-                                Navigator.pushReplacement(
-                                  context,
-                                  CupertinoPageRoute(
-                                    builder: (_) => const LoginFormScreen(),
-                                  ),
-                                );
-                              },
-                              child: Text(
-                                'Intră în cont',
+                              const SizedBox(height: 8),
+                              Text(
+                                'Creează cont',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: _AuthColors.textDark,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15,
+                                  fontFamily: '.SF Pro Display',
+                                  fontSize: 31,
+                                  fontWeight: FontWeight.w800,
+                                  color: _AuthColors.blueStrong,
+                                  letterSpacing: -0.5,
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            const _AuthSectionDivider(label: 'Sau continuă cu'),
-                            const SizedBox(height: 10),
-                            _SocialAuthRow(
-                              enabled: !_isLoading,
-                              onGoogleTap: _signInWithGoogle,
-                            ),
-                            const Spacer(flex: 2),
-                          ],
+                              const SizedBox(height: 8),
+                              Text(
+                                'Creează un cont pentru a salva\nprogresul și sesiunile tale BAC',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: '.SF Pro Display',
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: _AuthColors.textDark,
+                                  height: 1.3,
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                              _AuthField(
+                                controller: _emailController,
+                                hint: 'Email',
+                                keyboardType: TextInputType.emailAddress,
+                                outlined: true,
+                              ),
+                              const SizedBox(height: 12),
+                              _AuthField(
+                                controller: _passwordController,
+                                hint: 'Parolă',
+                                obscureText: _obscurePassword,
+                                suffix: GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.selectionClick();
+                                    setState(
+                                      () =>
+                                          _obscurePassword = !_obscurePassword,
+                                    );
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 14),
+                                    child: Icon(
+                                      _obscurePassword
+                                          ? CupertinoIcons.eye
+                                          : CupertinoIcons.eye_slash,
+                                      size: 18,
+                                      color: _AuthColors.textMuted,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              _AuthField(
+                                controller: _confirmController,
+                                hint: 'Confirmă parola',
+                                obscureText: _obscureConfirm,
+                                suffix: GestureDetector(
+                                  onTap: () {
+                                    HapticFeedback.selectionClick();
+                                    setState(
+                                      () => _obscureConfirm = !_obscureConfirm,
+                                    );
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.only(right: 14),
+                                    child: Icon(
+                                      _obscureConfirm
+                                          ? CupertinoIcons.eye
+                                          : CupertinoIcons.eye_slash,
+                                      size: 18,
+                                      color: _AuthColors.textMuted,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              _PrimaryAuthButton(
+                                label: 'Creează cont',
+                                loading: _isLoading,
+                                onPressed: _isLoading ? null : _register,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Ai deja cont',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: _AuthColors.textMuted,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              GestureDetector(
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  Navigator.pushReplacement(
+                                    context,
+                                    CupertinoPageRoute(
+                                      builder: (_) => const LoginFormScreen(),
+                                    ),
+                                  );
+                                },
+                                child: Text(
+                                  'Intră în cont',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: _AuthColors.textDark,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              const _AuthSectionDivider(
+                                label: 'Sau continuă cu',
+                              ),
+                              const SizedBox(height: 10),
+                              _SocialAuthRow(
+                                enabled: !_isLoading,
+                                onGoogleTap: _signInWithGoogle,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -658,41 +692,51 @@ class _LandingContent extends StatelessWidget {
           ],
         ),
         Padding(
-          padding: const EdgeInsets.only(top: 0, bottom: 72),
+          padding: const EdgeInsets.only(top: 0, bottom: 44),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(
-                height: 58,
+                height: 62,
                 child: CupertinoButton(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   onPressed: onLogin,
                   child: Text(
                     'Autentificare',
                     style: TextStyle(
                       color: _AuthColors.blueStrong,
                       fontFamily: '.SF Pro Display',
-                      fontSize: 22,
+                      fontSize: 20,
                       fontWeight: FontWeight.w700,
+                      height: 1.15,
                     ),
                   ),
                 ),
               ),
               const SizedBox(height: 12),
               SizedBox(
-                height: 56,
+                height: 62,
                 child: CupertinoButton(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   onPressed: onSignup,
                   child: Text(
                     'Înregistrare',
                     style: TextStyle(
                       color: _AuthColors.blueStrong,
                       fontFamily: '.SF Pro Display',
-                      fontSize: 22,
+                      fontSize: 20,
                       fontWeight: FontWeight.w700,
+                      height: 1.15,
                     ),
                   ),
                 ),
@@ -796,10 +840,10 @@ class _AuthPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 14),
+      padding: const EdgeInsets.fromLTRB(22, 20, 22, 18),
       decoration: BoxDecoration(
         color: _AuthColors.card,
-        borderRadius: BorderRadius.circular(34),
+        borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(30),
@@ -869,7 +913,7 @@ class _AuthField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 56,
+      height: 58,
       decoration: BoxDecoration(
         color: outlined ? Colors.white : const Color(0xFFECEFF6),
         borderRadius: BorderRadius.circular(14),
@@ -887,7 +931,7 @@ class _AuthField extends StatelessWidget {
               keyboardType: keyboardType,
               style: TextStyle(
                 fontFamily: '.SF Pro Text',
-                fontSize: 19,
+                fontSize: 18,
                 fontWeight: FontWeight.w500,
                 color: _AuthColors.textDark,
               ),
@@ -895,11 +939,14 @@ class _AuthField extends StatelessWidget {
                 hintText: hint,
                 hintStyle: TextStyle(
                   color: _AuthColors.textMuted,
-                  fontSize: 19,
+                  fontSize: 18,
                   fontWeight: FontWeight.w500,
                 ),
                 border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
               ),
             ),
           ),
@@ -924,11 +971,11 @@ class _PrimaryAuthButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 62,
+      height: 64,
       child: CupertinoButton(
         color: _AuthColors.blueStrong,
         borderRadius: BorderRadius.circular(14),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
         onPressed: onPressed,
         child: loading
             ? const CupertinoActivityIndicator(color: Colors.white)
@@ -937,8 +984,9 @@ class _PrimaryAuthButton extends StatelessWidget {
                 style: const TextStyle(
                   color: Colors.white,
                   fontFamily: '.SF Pro Display',
-                  fontSize: 25,
+                  fontSize: 22,
                   fontWeight: FontWeight.w700,
+                  height: 1.1,
                 ),
               ),
       ),

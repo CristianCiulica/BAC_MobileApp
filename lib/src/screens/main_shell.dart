@@ -26,6 +26,7 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   StreamSubscription<UserProfileData>? _profileSubscription;
+  bool _themeHydratedFromProfile = false;
 
   @override
   void initState() {
@@ -36,7 +37,8 @@ class _MainShellState extends State<MainShell> {
       _profileSubscription = FirestoreService.watchProfile(user).listen((
         profile,
       ) {
-        if (AppSettings.darkMode.value != profile.darkMode) {
+        if (!_themeHydratedFromProfile) {
+          _themeHydratedFromProfile = true;
           AppSettings.setDarkMode(profile.darkMode);
         }
       });
@@ -918,7 +920,7 @@ class ProfileSelectionScreen extends StatelessWidget {
             },
           ),
           flexibleSpace: FlexibleSpaceBar(
-            titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
+            titlePadding: const EdgeInsets.fromLTRB(70, 0, 16, 14),
             title: Text('Bac Pro', style: AppText.largeTitleStyle),
             expandedTitleScale: 1.0,
             collapseMode: CollapseMode.none,
@@ -2025,8 +2027,9 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                SafeArea(
+                  top: false,
+                  minimum: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                   child: SizedBox(
                     width: double.infinity,
                     child: CupertinoButton(
@@ -2082,7 +2085,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 40),
+                SizedBox(height: MediaQuery.paddingOf(context).bottom + 20),
               ],
             ),
           ),

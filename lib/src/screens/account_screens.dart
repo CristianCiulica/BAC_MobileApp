@@ -798,6 +798,8 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  bool? _darkModeOverride;
+
   @override
   Widget build(BuildContext context) {
     final user = AuthService.currentUser;
@@ -833,6 +835,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     builder: (context, snapshot) {
                       final profile =
                           snapshot.data ?? UserProfileData.defaults(user);
+                      final effectiveDarkMode =
+                          _darkModeOverride ?? profile.darkMode;
                       return Column(
                         children: [
                           const SizedBox(height: 8),
@@ -843,8 +847,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 icon: CupertinoIcons.moon_fill,
                                 color: AppColors.indigo,
                                 label: 'Mod întunecat',
-                                value: profile.darkMode,
+                                value: effectiveDarkMode,
                                 onChanged: (v) {
+                                  setState(() => _darkModeOverride = v);
                                   AppSettings.setDarkMode(v);
                                   FirestoreService.updateSettings(
                                     user,
