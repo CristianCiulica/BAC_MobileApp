@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../models/app_data.dart';
+import '../services/app_settings.dart';
 
 class AppIconBadge extends StatelessWidget {
   final IconData icon;
@@ -113,7 +113,7 @@ class _IOSCellState extends State<IOSCell> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: (_) {
-        HapticFeedback.selectionClick();
+        AppHaptics.selection();
         setState(() => _pressed = true);
       },
       onTapUp: (_) {

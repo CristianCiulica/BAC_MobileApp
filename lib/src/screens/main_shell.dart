@@ -1,8 +1,8 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:pdfrx/pdfrx.dart';
 
 import '../../features/countdown/widgets/countdown_card.dart';
@@ -27,6 +27,8 @@ class _MainShellState extends State<MainShell> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   StreamSubscription<UserProfileData>? _profileSubscription;
   bool _themeHydratedFromProfile = false;
+  int _selectedTabIndex = 0;
+  bool _isMenuOpen = false;
 
   @override
   void initState() {
@@ -41,6 +43,7 @@ class _MainShellState extends State<MainShell> {
           _themeHydratedFromProfile = true;
           AppSettings.setDarkMode(profile.darkMode);
         }
+        AppSettings.setHaptics(profile.haptics);
       });
     }
   }
@@ -53,25 +56,115 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final tabs = <Widget>[
+      ProfileSelectionScreen(onMenuTap: _openMenu),
+      const RandomSubjectScreen(),
+      const ProfileTabScreen(),
+    ];
+
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: AppColors.background,
-      drawer: const AppDrawer(),
-      body: ProfileSelectionScreen(scaffoldKey: _scaffoldKey),
+      body: Stack(
+        children: [
+          IndexedStack(index: _selectedTabIndex, children: tabs),
+          if (_selectedTabIndex == 0) _buildSideMenuOverlay(context),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          border: Border(
+            top: BorderSide(color: AppColors.separator, width: 0.4),
+          ),
+        ),
+        child: CupertinoTabBar(
+          currentIndex: _selectedTabIndex,
+          activeColor: AppColors.blue,
+          inactiveColor: AppColors.secondLabel,
+          border: null,
+          backgroundColor: AppColors.surface.withAlpha(252),
+          onTap: (index) {
+            AppHaptics.selection();
+            setState(() {
+              _selectedTabIndex = index;
+              _isMenuOpen = false;
+            });
+          },
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(CupertinoIcons.house_fill),
+              label: 'Dashboard',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(CupertinoIcons.shuffle),
+              label: 'Subiect Random',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(CupertinoIcons.person_crop_circle),
+              label: 'Profil',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openMenu() {
+    if (_isMenuOpen) return;
+    setState(() => _isMenuOpen = true);
+  }
+
+  void _closeMenu() {
+    if (!_isMenuOpen) return;
+    setState(() => _isMenuOpen = false);
+  }
+
+  Widget _buildSideMenuOverlay(BuildContext context) {
+    final menuWidth = MediaQuery.sizeOf(context).width * 0.82;
+
+    return Stack(
+      children: [
+        IgnorePointer(
+          ignoring: !_isMenuOpen,
+          child: AnimatedOpacity(
+            duration: const Duration(milliseconds: 170),
+            curve: Curves.easeOut,
+            opacity: _isMenuOpen ? 1 : 0,
+            child: GestureDetector(
+              onTap: _closeMenu,
+              child: Container(color: Colors.black.withAlpha(70)),
+            ),
+          ),
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: AnimatedSlide(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            offset: _isMenuOpen ? Offset.zero : const Offset(-1.05, 0),
+            child: SizedBox(
+              width: menuWidth,
+              child: AppDrawer(onClose: _closeMenu),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
 
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({super.key});
+  final VoidCallback? onClose;
+
+  const AppDrawer({super.key, this.onClose});
 
   @override
   Widget build(BuildContext context) {
     final userName = AuthService.displayName;
     final user = AuthService.currentUser;
 
-    return Drawer(
-      width: MediaQuery.of(context).size.width * 0.82,
+    return Material(
+      color: AppColors.surface,
       child: SafeArea(
         child: Column(
           children: [
@@ -158,49 +251,69 @@ class AppDrawer extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.background,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (user == null) ...[
-                      const _StatItem(value: '0', label: 'Subiecte'),
+                      const Expanded(
+                        child: _StatItem(value: '0', label: 'Subiecte'),
+                      ),
                       const _VerticalDivider(),
-                      const _StatItem(value: '0h', label: 'Timp total'),
+                      const Expanded(
+                        child: _StatItem(value: '0h', label: 'Timp total'),
+                      ),
                       const _VerticalDivider(),
-                      const _StatItem(value: '-', label: 'Medie'),
+                      const Expanded(
+                        child: _StatItem(value: '-', label: 'Medie'),
+                      ),
                     ] else
-                      StreamBuilder<List<StudySession>>(
-                        stream: FirestoreService.watchSessions(user),
-                        builder: (context, snapshot) {
-                          final progress = UserProgress.fromSessions(
-                            snapshot.data ?? const [],
-                          );
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _StatItem(
-                                value: '${progress.solvedCount}',
-                                label: 'Subiecte',
-                              ),
-                              const _VerticalDivider(),
-                              _StatItem(
-                                value: _formatHours(progress.totalStudySeconds),
-                                label: 'Timp total',
-                              ),
-                              const _VerticalDivider(),
-                              _StatItem(
-                                value: progress.averageGrade == 0
-                                    ? '-'
-                                    : progress.averageGrade.toStringAsFixed(1),
-                                label: 'Medie',
-                              ),
-                            ],
-                          );
-                        },
+                      Expanded(
+                        child: StreamBuilder<List<StudySession>>(
+                          stream: FirestoreService.watchSessions(user),
+                          builder: (context, snapshot) {
+                            final progress = UserProgress.fromSessions(
+                              snapshot.data ?? const [],
+                            );
+                            return Row(
+                              children: [
+                                Expanded(
+                                  child: _StatItem(
+                                    value: '${progress.solvedCount}',
+                                    label: 'Subiecte',
+                                  ),
+                                ),
+                                const _VerticalDivider(),
+                                Expanded(
+                                  child: _StatItem(
+                                    value: _formatHours(
+                                      progress.totalStudySeconds,
+                                    ),
+                                    label: 'Timp total',
+                                  ),
+                                ),
+                                const _VerticalDivider(),
+                                Expanded(
+                                  child: _StatItem(
+                                    value: progress.averageGrade == 0
+                                        ? '-'
+                                        : progress.averageGrade.toStringAsFixed(
+                                            1,
+                                          ),
+                                    label: 'Medie',
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
                       ),
                   ],
                 ),
@@ -285,7 +398,7 @@ class AppDrawer extends StatelessWidget {
                         label: 'Deconectează-te',
                         color: AppColors.red,
                         onTap: () async {
-                          Navigator.pop(context);
+                          onClose?.call();
                           await AuthService.signOut();
                           if (!context.mounted) return;
                           Navigator.of(context).pushAndRemoveUntil(
@@ -308,7 +421,7 @@ class AppDrawer extends StatelessWidget {
   }
 
   void _push(BuildContext context, Widget page) {
-    Navigator.pop(context);
+    onClose?.call();
     Navigator.push(context, cupertinoRoute(page));
   }
 
@@ -325,7 +438,12 @@ class _VerticalDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(width: 0.5, height: 36, color: AppColors.separator);
+    return Container(
+      width: 0.5,
+      height: 40,
+      margin: const EdgeInsets.symmetric(horizontal: 6),
+      color: AppColors.separator,
+    );
   }
 }
 
@@ -338,6 +456,7 @@ class _StatItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           value,
@@ -348,8 +467,14 @@ class _StatItem extends StatelessWidget {
             color: AppColors.label,
           ),
         ),
-        const SizedBox(height: 2),
-        Text(label, style: AppText.captionStyle),
+        const SizedBox(height: 3),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: AppText.captionStyle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ],
     );
   }
@@ -409,7 +534,7 @@ class _DrawerItemState extends State<_DrawerItem> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTapDown: (_) {
-        HapticFeedback.selectionClick();
+        AppHaptics.selection();
         setState(() => _pressed = true);
       },
       onTapUp: (_) {
@@ -458,7 +583,7 @@ class _AppRatingScreenState extends State<AppRatingScreen> {
   }
 
   Future<void> _submitFeedback() async {
-    HapticFeedback.mediumImpact();
+    AppHaptics.medium();
     if (!mounted) return;
     final user = AuthService.currentUser;
     if (user == null) {
@@ -525,140 +650,129 @@ class _AppRatingScreenState extends State<AppRatingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
-
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: AppColors.background,
       body: SafeArea(
         bottom: false,
-        child: AnimatedPadding(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          padding: EdgeInsets.only(bottom: keyboardInset),
-          child: CustomScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            slivers: [
-              SliverAppBar(
-                pinned: true,
-                expandedHeight: 96,
-                backgroundColor: AppColors.background,
-                surfaceTintColor: Colors.transparent,
-                scrolledUnderElevation: 0.5,
-                shadowColor: AppColors.separator,
-                leading: CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () => Navigator.pop(context),
-                  child: const Icon(CupertinoIcons.back, color: AppColors.blue),
-                ),
-                flexibleSpace: FlexibleSpaceBar(
-                  titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
-                  title: Text(
-                    'Evaluează aplicația',
-                    style: AppText.largeTitleStyle,
-                  ),
-                  expandedTitleScale: 1.0,
-                  collapseMode: CollapseMode.none,
-                ),
+        child: CustomScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          slivers: [
+            SliverAppBar(
+              pinned: true,
+              expandedHeight: 96,
+              backgroundColor: AppColors.background,
+              surfaceTintColor: Colors.transparent,
+              scrolledUnderElevation: 0.5,
+              shadowColor: AppColors.separator,
+              leading: CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: () => Navigator.pop(context),
+                child: const Icon(CupertinoIcons.back, color: AppColors.blue),
               ),
-              SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 12),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: AppColors.separator),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Cât de utilă este Bac Pro?',
-                              style: AppText.bodyStyle.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
+              flexibleSpace: FlexibleSpaceBar(
+                titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
+                title: Text(
+                  'Evaluează aplicația',
+                  style: AppText.largeTitleStyle,
+                ),
+                expandedTitleScale: 1.0,
+                collapseMode: CollapseMode.none,
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: AppColors.separator),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Cât de utilă este Bac Pro?',
+                            style: AppText.bodyStyle.copyWith(
+                              fontWeight: FontWeight.w600,
                             ),
-                            const SizedBox(height: 10),
-                            Row(
-                              children: List.generate(5, (index) {
-                                final value = index + 1;
-                                final selected = value <= _rating;
-                                return GestureDetector(
-                                  onTap: () {
-                                    HapticFeedback.selectionClick();
-                                    setState(() => _rating = value);
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(right: 8),
-                                    child: Icon(
-                                      selected
-                                          ? CupertinoIcons.star_fill
-                                          : CupertinoIcons.star,
-                                      color: selected
-                                          ? AppColors.orange
-                                          : AppColors.tertiaryLabel,
-                                      size: 24,
-                                    ),
-                                  ),
-                                );
-                              }),
-                            ),
-                            const SizedBox(height: 14),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.background,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
-                              child: TextField(
-                                controller: _notesController,
-                                maxLines: 4,
-                                scrollPadding: const EdgeInsets.only(
-                                  bottom: 140,
-                                ),
-                                style: AppText.bodyStyle,
-                                decoration: InputDecoration(
-                                  border: InputBorder.none,
-                                  hintText:
-                                      'Ce ți-ar plăcea să îmbunătățim în continuare?',
-                                  hintStyle: AppText.subheadStyle,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-                            SizedBox(
-                              width: double.infinity,
-                              child: CupertinoButton(
-                                color: AppColors.blue,
-                                borderRadius: BorderRadius.circular(10),
-                                onPressed: _submitFeedback,
-                                child: const Text(
-                                  'Trimite feedback',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: List.generate(5, (index) {
+                              final value = index + 1;
+                              final selected = value <= _rating;
+                              return GestureDetector(
+                                onTap: () {
+                                  AppHaptics.selection();
+                                  setState(() => _rating = value);
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: Icon(
+                                    selected
+                                        ? CupertinoIcons.star_fill
+                                        : CupertinoIcons.star,
+                                    color: selected
+                                        ? AppColors.orange
+                                        : AppColors.tertiaryLabel,
+                                    size: 24,
                                   ),
                                 ),
+                              );
+                            }),
+                          ),
+                          const SizedBox(height: 14),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.background,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: TextField(
+                              controller: _notesController,
+                              maxLines: 4,
+                              scrollPadding: const EdgeInsets.only(bottom: 140),
+                              style: AppText.bodyStyle,
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                hintText:
+                                    'Ce ți-ar plăcea să îmbunătățim în continuare?',
+                                hintStyle: AppText.subheadStyle,
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 14),
+                          SizedBox(
+                            width: double.infinity,
+                            child: CupertinoButton(
+                              color: AppColors.blue,
+                              borderRadius: BorderRadius.circular(10),
+                              onPressed: _submitFeedback,
+                              child: const Text(
+                                'Trimite feedback',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 40),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -710,7 +824,7 @@ class _DeveloperMessagesScreenState extends State<DeveloperMessagesScreen> {
     try {
       await FirestoreService.sendDeveloperMessage(user, message: text);
       _messageController.clear();
-      HapticFeedback.mediumImpact();
+      AppHaptics.medium();
     } catch (_) {
       if (!mounted) return;
       await showCupertinoDialog<void>(
@@ -743,195 +857,185 @@ class _DeveloperMessagesScreenState extends State<DeveloperMessagesScreen> {
   @override
   Widget build(BuildContext context) {
     final user = AuthService.currentUser;
-    final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: AppColors.background,
       body: SafeArea(
         bottom: false,
-        child: AnimatedPadding(
-          duration: const Duration(milliseconds: 220),
-          curve: Curves.easeOutCubic,
-          padding: EdgeInsets.only(bottom: keyboardInset),
-          child: CustomScrollView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            slivers: [
-              SliverAppBar(
-                pinned: true,
-                expandedHeight: 96,
-                backgroundColor: AppColors.background,
-                surfaceTintColor: Colors.transparent,
-                scrolledUnderElevation: 0.5,
-                shadowColor: AppColors.separator,
-                leading: CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: () => Navigator.pop(context),
-                  child: const Icon(CupertinoIcons.back, color: AppColors.blue),
-                ),
-                flexibleSpace: FlexibleSpaceBar(
-                  titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
-                  title: Text(
-                    'Mesaje dezvoltator',
-                    style: AppText.largeTitleStyle,
-                  ),
-                  expandedTitleScale: 1.0,
-                  collapseMode: CollapseMode.none,
-                ),
+        child: CustomScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          slivers: [
+            SliverAppBar(
+              pinned: true,
+              expandedHeight: 96,
+              backgroundColor: AppColors.background,
+              surfaceTintColor: Colors.transparent,
+              scrolledUnderElevation: 0.5,
+              shadowColor: AppColors.separator,
+              leading: CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: () => Navigator.pop(context),
+                child: const Icon(CupertinoIcons.back, color: AppColors.blue),
               ),
-              SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 10),
-                    IOSSection(
-                      header: 'Trimite sugestie',
-                      footer:
-                          'Mesajele apar în documentul tău din Firebase la câmpul developerMessages.',
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Scrie ce ai vrea să îmbunătățim în Bac Pro.',
-                                style: AppText.subheadStyle,
-                              ),
-                              const SizedBox(height: 10),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: AppColors.background,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                ),
-                                child: TextField(
-                                  controller: _messageController,
-                                  maxLines: 4,
-                                  scrollPadding: const EdgeInsets.only(
-                                    bottom: 140,
-                                  ),
-                                  style: AppText.bodyStyle,
-                                  decoration: InputDecoration(
-                                    border: InputBorder.none,
-                                    hintText:
-                                        'Ex: aș vrea filtre pe ani, profil...',
-                                    hintStyle: AppText.subheadStyle,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              SizedBox(
-                                width: double.infinity,
-                                child: CupertinoButton(
-                                  color: AppColors.blue,
-                                  borderRadius: BorderRadius.circular(10),
-                                  onPressed: _sending ? null : _sendMessage,
-                                  child: _sending
-                                      ? const CupertinoActivityIndicator(
-                                          color: Colors.white,
-                                        )
-                                      : const Text(
-                                          'Trimite mesaj',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    IOSSection(
-                      header: 'Istoric mesaje',
-                      children: [
-                        if (user == null)
-                          Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Text(
-                              'Conectează-te pentru a vedea istoricul de mesaje.',
+              flexibleSpace: FlexibleSpaceBar(
+                titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
+                title: Text(
+                  'Mesaje dezvoltator',
+                  style: AppText.largeTitleStyle,
+                ),
+                expandedTitleScale: 1.0,
+                collapseMode: CollapseMode.none,
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  const SizedBox(height: 10),
+                  IOSSection(
+                    header: 'Trimite sugestie',
+                    footer:
+                        'Mesajele apar în documentul tău din Firebase la câmpul developerMessages.',
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Scrie ce ai vrea să îmbunătățim în Bac Pro.',
                               style: AppText.subheadStyle,
                             ),
-                          )
-                        else
-                          StreamBuilder<List<DeveloperMessage>>(
-                            stream: FirestoreService.watchDeveloperMessages(
-                              user,
-                            ),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const Padding(
-                                  padding: EdgeInsets.all(18),
-                                  child: Center(
-                                    child: CupertinoActivityIndicator(),
-                                  ),
-                                );
-                              }
-
-                              final messages = snapshot.data ?? const [];
-                              if (messages.isEmpty) {
-                                return Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Text(
-                                    'Încă nu ai trimis mesaje.',
-                                    style: AppText.subheadStyle,
-                                  ),
-                                );
-                              }
-
-                              return Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  14,
-                                  12,
-                                  14,
-                                  12,
+                            const SizedBox(height: 10),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.background,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              child: TextField(
+                                controller: _messageController,
+                                maxLines: 4,
+                                scrollPadding: const EdgeInsets.only(
+                                  bottom: 140,
                                 ),
-                                child: Column(
-                                  children: messages.map((message) {
-                                    return Container(
-                                      width: double.infinity,
-                                      margin: const EdgeInsets.only(bottom: 10),
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.background,
-                                        borderRadius: BorderRadius.circular(10),
+                                style: AppText.bodyStyle,
+                                decoration: InputDecoration(
+                                  border: InputBorder.none,
+                                  hintText:
+                                      'Ex: aș vrea filtre pe ani, profil...',
+                                  hintStyle: AppText.subheadStyle,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: CupertinoButton(
+                                color: AppColors.blue,
+                                borderRadius: BorderRadius.circular(10),
+                                onPressed: _sending ? null : _sendMessage,
+                                child: _sending
+                                    ? const CupertinoActivityIndicator(
+                                        color: Colors.white,
+                                      )
+                                    : const Text(
+                                        'Trimite mesaj',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                        ),
                                       ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            message.text,
-                                            style: AppText.bodyStyle,
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            _formatMessageTime(
-                                              message.createdAt,
-                                            ),
-                                            style: AppText.captionStyle,
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  }).toList(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  IOSSection(
+                    header: 'Istoric mesaje',
+                    children: [
+                      if (user == null)
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(
+                            'Conectează-te pentru a vedea istoricul de mesaje.',
+                            style: AppText.subheadStyle,
+                          ),
+                        )
+                      else
+                        StreamBuilder<List<DeveloperMessage>>(
+                          stream: FirestoreService.watchDeveloperMessages(user),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Padding(
+                                padding: EdgeInsets.all(18),
+                                child: Center(
+                                  child: CupertinoActivityIndicator(),
                                 ),
                               );
-                            },
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 28),
-                  ],
-                ),
+                            }
+
+                            final messages = snapshot.data ?? const [];
+                            if (messages.isEmpty) {
+                              return Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Text(
+                                  'Încă nu ai trimis mesaje.',
+                                  style: AppText.subheadStyle,
+                                ),
+                              );
+                            }
+
+                            return Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                14,
+                                12,
+                                14,
+                                12,
+                              ),
+                              child: Column(
+                                children: messages.map((message) {
+                                  return Container(
+                                    width: double.infinity,
+                                    margin: const EdgeInsets.only(bottom: 10),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.background,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          message.text,
+                                          style: AppText.bodyStyle,
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          _formatMessageTime(message.createdAt),
+                                          style: AppText.captionStyle,
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 28),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -939,9 +1043,9 @@ class _DeveloperMessagesScreenState extends State<DeveloperMessagesScreen> {
 }
 
 class ProfileSelectionScreen extends StatelessWidget {
-  final GlobalKey<ScaffoldState> scaffoldKey;
+  final VoidCallback onMenuTap;
 
-  const ProfileSelectionScreen({super.key, required this.scaffoldKey});
+  const ProfileSelectionScreen({super.key, required this.onMenuTap});
 
   @override
   Widget build(BuildContext context) {
@@ -949,26 +1053,35 @@ class ProfileSelectionScreen extends StatelessWidget {
       slivers: [
         SliverAppBar(
           pinned: true,
-          expandedHeight: 100,
+          toolbarHeight: 64,
           backgroundColor: AppColors.background,
           surfaceTintColor: Colors.transparent,
           scrolledUnderElevation: 0.5,
           shadowColor: AppColors.separator,
+          leadingWidth: 54,
           leading: IconButton(
             icon: const Icon(
               CupertinoIcons.line_horizontal_3,
               color: AppColors.blue,
             ),
             onPressed: () {
-              HapticFeedback.mediumImpact();
-              scaffoldKey.currentState?.openDrawer();
+              AppHaptics.medium();
+              onMenuTap();
             },
           ),
-          flexibleSpace: FlexibleSpaceBar(
-            titlePadding: const EdgeInsets.fromLTRB(70, 0, 16, 14),
-            title: Text('Bac Pro', style: AppText.largeTitleStyle),
-            expandedTitleScale: 1.0,
-            collapseMode: CollapseMode.none,
+          titleSpacing: 0,
+          title: Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              'Bac Pro',
+              style: TextStyle(
+                fontFamily: '.SF Pro Display',
+                fontSize: 32,
+                fontWeight: FontWeight.w700,
+                color: AppColors.label,
+                letterSpacing: -0.4,
+              ),
+            ),
           ),
         ),
         SliverToBoxAdapter(
@@ -1010,6 +1123,356 @@ class ProfileSelectionScreen extends StatelessWidget {
       ],
     );
   }
+}
+
+class RandomSubjectScreen extends StatefulWidget {
+  const RandomSubjectScreen({super.key});
+
+  @override
+  State<RandomSubjectScreen> createState() => _RandomSubjectScreenState();
+}
+
+class _RandomSubjectScreenState extends State<RandomSubjectScreen> {
+  final Random _random = Random();
+  _RandomSubjectPick? _pick;
+
+  @override
+  void initState() {
+    super.initState();
+    _generateRandomPick();
+  }
+
+  void _generateRandomPick() {
+    if (appProfiles.isEmpty || examYears.isEmpty || examSessions.isEmpty) {
+      return;
+    }
+
+    final profile = appProfiles[_random.nextInt(appProfiles.length)];
+    final subject = profile.subjects[_random.nextInt(profile.subjects.length)];
+    final year = examYears[_random.nextInt(examYears.length)];
+    final session = examSessions[_random.nextInt(examSessions.length)];
+
+    setState(() {
+      _pick = _RandomSubjectPick(
+        profileName: profile.name,
+        subjectName: subject.title,
+        year: year,
+        sessionName: session.name,
+        subjectIcon: subject.icon,
+        subjectColor: subject.accentColor,
+        sessionColor: session.color,
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pick = _pick;
+
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar(
+          pinned: true,
+          toolbarHeight: 64,
+          backgroundColor: AppColors.background,
+          surfaceTintColor: Colors.transparent,
+          scrolledUnderElevation: 0.5,
+          shadowColor: AppColors.separator,
+          titleSpacing: 16,
+          title: Text(
+            'Subiect Random',
+            style: TextStyle(
+              fontFamily: '.SF Pro Display',
+              fontSize: 30,
+              fontWeight: FontWeight.w700,
+              color: AppColors.label,
+              letterSpacing: -0.4,
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.separator),
+                  ),
+                  child: pick == null
+                      ? const CupertinoActivityIndicator()
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                AppIconBadge(
+                                  icon: pick.subjectIcon,
+                                  color: pick.subjectColor,
+                                  size: 48,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        pick.subjectName,
+                                        style: AppText.titleStyle,
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${pick.profileName} · ${pick.year}',
+                                        style: AppText.subheadStyle,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: pick.sessionColor.withAlpha(36),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                pick.sessionName,
+                                style: TextStyle(
+                                  color: pick.sessionColor,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: CupertinoButton(
+                    color: AppColors.blue,
+                    borderRadius: BorderRadius.circular(12),
+                    onPressed: () {
+                      AppHaptics.selection();
+                      _generateRandomPick();
+                    },
+                    child: const Text(
+                      'Generează alt subiect',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: CupertinoButton(
+                    color: AppColors.indigo,
+                    borderRadius: BorderRadius.circular(12),
+                    onPressed: pick == null
+                        ? null
+                        : () {
+                            AppHaptics.medium();
+                            Navigator.push(
+                              context,
+                              cupertinoRoute(
+                                SubjectDetailScreen(
+                                  profileName: pick.profileName,
+                                  subjectName: pick.subjectName,
+                                  year: pick.year,
+                                  sessionName: pick.sessionName,
+                                  subjectIcon: pick.subjectIcon,
+                                  subjectColor: pick.subjectColor,
+                                  sessionColor: pick.sessionColor,
+                                ),
+                              ),
+                            );
+                          },
+                    child: const Text(
+                      'Începe subiectul',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class ProfileTabScreen extends StatelessWidget {
+  const ProfileTabScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final user = AuthService.currentUser;
+
+    return CustomScrollView(
+      slivers: [
+        SliverAppBar(
+          pinned: true,
+          toolbarHeight: 64,
+          backgroundColor: AppColors.background,
+          surfaceTintColor: Colors.transparent,
+          scrolledUnderElevation: 0.5,
+          shadowColor: AppColors.separator,
+          titleSpacing: 16,
+          title: Text(
+            'Profil',
+            style: TextStyle(
+              fontFamily: '.SF Pro Display',
+              fontSize: 30,
+              fontWeight: FontWeight.w700,
+              color: AppColors.label,
+              letterSpacing: -0.4,
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.separator),
+                  ),
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.asset(
+                          'assets/images/login_hero.png',
+                          width: 52,
+                          height: 52,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              AuthService.displayName,
+                              style: AppText.titleStyle.copyWith(fontSize: 18),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              user?.email ?? 'Cont Bac Pro',
+                              style: AppText.subheadStyle,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              IOSSection(
+                header: 'Cont',
+                children: [
+                  IOSCell(
+                    leading: const AppIconBadge(
+                      icon: CupertinoIcons.person_crop_circle,
+                      color: AppColors.blue,
+                    ),
+                    title: 'Profil utilizator',
+                    onTap: () => Navigator.push(
+                      context,
+                      cupertinoRoute(const UserProfileScreen()),
+                    ),
+                  ),
+                  IOSCell(
+                    leading: const AppIconBadge(
+                      icon: CupertinoIcons.gear_alt_fill,
+                      color: AppColors.indigo,
+                    ),
+                    title: 'Setări',
+                    onTap: () => Navigator.push(
+                      context,
+                      cupertinoRoute(const SettingsScreen()),
+                    ),
+                  ),
+                  IOSCell(
+                    leading: const AppIconBadge(
+                      icon: CupertinoIcons.info_circle_fill,
+                      color: AppColors.teal,
+                    ),
+                    title: 'Despre Bac Pro',
+                    onTap: () => Navigator.push(
+                      context,
+                      cupertinoRoute(const AboutScreen()),
+                    ),
+                  ),
+                  IOSCell(
+                    leading: const AppIconBadge(
+                      icon: CupertinoIcons.square_arrow_right,
+                      color: AppColors.red,
+                    ),
+                    title: 'Deconectează-te',
+                    onTap: () async {
+                      await AuthService.signOut();
+                      if (!context.mounted) return;
+                      Navigator.of(context).pushAndRemoveUntil(
+                        CupertinoPageRoute(builder: (_) => const LoginScreen()),
+                        (_) => false,
+                      );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 30),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RandomSubjectPick {
+  final String profileName;
+  final String subjectName;
+  final String year;
+  final String sessionName;
+  final IconData subjectIcon;
+  final Color subjectColor;
+  final Color sessionColor;
+
+  const _RandomSubjectPick({
+    required this.profileName,
+    required this.subjectName,
+    required this.year,
+    required this.sessionName,
+    required this.subjectIcon,
+    required this.subjectColor,
+    required this.sessionColor,
+  });
 }
 
 class _HomeOverviewPanel extends StatelessWidget {
@@ -1730,7 +2193,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
       return;
     }
 
-    HapticFeedback.mediumImpact();
+    AppHaptics.medium();
     setState(() => _examStarted = true);
     final result = await Navigator.push<ExamFullscreenResult>(
       context,
@@ -1769,7 +2232,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
   }
 
   Future<void> _confirmStopExam() async {
-    HapticFeedback.selectionClick();
+    AppHaptics.selection();
     final shouldStop = await showCupertinoDialog<bool>(
       context: context,
       builder: (_) => CupertinoAlertDialog(
@@ -1893,7 +2356,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
               child: const Icon(CupertinoIcons.back, color: AppColors.blue),
             ),
             flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(72, 0, 16, 14),
+              titlePadding: const EdgeInsets.fromLTRB(86, 0, 16, 14),
               title: Text(widget.subjectName, style: AppText.largeTitleStyle),
               expandedTitleScale: 1.0,
               collapseMode: CollapseMode.none,
@@ -2161,7 +2624,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                                   color: AppColors.blue,
                                   borderRadius: BorderRadius.circular(10),
                                   onPressed: () async {
-                                    HapticFeedback.selectionClick();
+                                    AppHaptics.selection();
                                     await _openPdfFullscreen(assetPath);
                                   },
                                   child: const Text(
@@ -2229,7 +2692,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                               max: 10.0,
                               divisions: 18,
                               onChanged: (v) {
-                                HapticFeedback.selectionClick();
+                                AppHaptics.selection();
                                 setState(() => _estimatedGrade = v);
                               },
                             ),
@@ -2299,7 +2762,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                                 ),
                               ),
                               onPressed: () {
-                                HapticFeedback.selectionClick();
+                                AppHaptics.selection();
                                 setState(() => _editingNotes = false);
                                 FocusScope.of(context).unfocus();
                               },
@@ -2320,7 +2783,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                       color: AppColors.blue,
                       borderRadius: BorderRadius.circular(14),
                       onPressed: () async {
-                        HapticFeedback.heavyImpact();
+                        AppHaptics.heavy();
                         final user = AuthService.currentUser;
                         final cleanNotes = _notesController.text.trim();
                         if (user != null) {
@@ -2459,7 +2922,7 @@ class _PdfFullscreenScreenState extends State<PdfFullscreenScreen> {
           _secondsLeft--;
         } else {
           t.cancel();
-          HapticFeedback.heavyImpact();
+          AppHaptics.heavy();
         }
       });
     });

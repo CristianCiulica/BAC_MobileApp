@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
 
 import '../../../src/models/app_data.dart';
+import '../../../src/services/app_settings.dart';
 import '../../countdown/services/countdown_service.dart';
 import '../models/study_plan_model.dart';
 import '../models/subject_plan_model.dart';
@@ -56,7 +56,7 @@ class _PlannerSetupScreenState extends State<PlannerSetupScreen> {
     );
 
     await StudyPlannerService.instance.savePlanAndGenerate(plan);
-    HapticFeedback.mediumImpact();
+    AppHaptics.medium();
     if (!mounted) return;
     Navigator.pop(context, true);
   }

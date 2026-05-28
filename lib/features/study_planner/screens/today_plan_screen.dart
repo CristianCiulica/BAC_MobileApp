@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
 
 import '../../../src/models/app_data.dart';
+import '../../../src/services/app_settings.dart';
 import '../../gamification/widgets/streak_card.dart';
 import '../../gamification/widgets/xp_progress_card.dart';
 import '../services/study_planner_service.dart';
@@ -66,7 +66,7 @@ class TodayPlanScreen extends StatelessWidget {
                           final granted = await StudyPlannerService.instance
                               .completeStudySessionForToday();
                           if (!context.mounted) return;
-                          HapticFeedback.mediumImpact();
+                          AppHaptics.medium();
                           showCupertinoDialog<void>(
                             context: context,
                             builder: (_) => CupertinoAlertDialog(
@@ -111,7 +111,7 @@ class TodayPlanScreen extends StatelessWidget {
                   StudyTaskCard(
                     task: task,
                     onChanged: (value) {
-                      HapticFeedback.selectionClick();
+                      AppHaptics.selection();
                       StudyPlannerService.instance.toggleTaskCompletion(
                         task.id,
                         value,

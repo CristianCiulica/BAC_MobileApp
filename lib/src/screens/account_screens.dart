@@ -862,11 +862,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 color: AppColors.orange,
                                 label: 'Feedback haptic',
                                 value: profile.haptics,
-                                onChanged: (v) =>
-                                    FirestoreService.updateSettings(
-                                      user,
-                                      haptics: v,
-                                    ),
+                                onChanged: (v) {
+                                  AppSettings.setHaptics(v);
+                                  FirestoreService.updateSettings(
+                                    user,
+                                    haptics: v,
+                                  );
+                                },
                               ),
                             ],
                           ),
@@ -1003,28 +1005,13 @@ class AboutScreen extends StatelessWidget {
             child: Column(
               children: [
                 const SizedBox(height: 32),
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppColors.blue, AppColors.indigo],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.blue.withAlpha(77),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    CupertinoIcons.book_fill,
-                    color: Colors.white,
-                    size: 38,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.asset(
+                    'assets/images/login_hero.png',
+                    width: 84,
+                    height: 84,
+                    fit: BoxFit.cover,
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -1050,7 +1037,12 @@ class AboutScreen extends StatelessWidget {
                         color: AppColors.blue,
                       ),
                       title: 'Termeni și condiții',
-                      onTap: () {},
+                      onTap: () => Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (_) => const TermsAndConditionsScreen(),
+                        ),
+                      ),
                     ),
                     IOSCell(
                       leading: const AppIconBadge(
@@ -1058,7 +1050,12 @@ class AboutScreen extends StatelessWidget {
                         color: AppColors.green,
                       ),
                       title: 'Politica de confidențialitate',
-                      onTap: () {},
+                      onTap: () => Navigator.push(
+                        context,
+                        CupertinoPageRoute(
+                          builder: (_) => const PrivacyPolicyScreen(),
+                        ),
+                      ),
                     ),
                     IOSCell(
                       leading: const AppIconBadge(
@@ -1092,4 +1089,157 @@ class AboutScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class TermsAndConditionsScreen extends StatelessWidget {
+  const TermsAndConditionsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return _PolicyTemplateScreen(
+      title: 'Termeni și condiții',
+      sections: const [
+        _PolicySection(
+          heading: '1. Despre aplicație',
+          body:
+              'Bac Pro este o aplicație educațională pentru organizarea pregătirii la Bacalaureat. Conținutul are rol orientativ și nu înlocuiește materialele oficiale ale Ministerului Educației.',
+        ),
+        _PolicySection(
+          heading: '2. Cont utilizator',
+          body:
+              'Ești responsabil pentru datele contului tău și pentru activitatea desfășurată în aplicație. Recomandăm folosirea unei adrese de email valide pentru recuperarea accesului.',
+        ),
+        _PolicySection(
+          heading: '3. Utilizarea materialelor',
+          body:
+              'Subiectele, baremele și notițele sunt folosite strict pentru studiu personal. Nu este permisă redistribuirea materialelor în mod care încalcă drepturile autorilor sau sursele oficiale.',
+        ),
+        _PolicySection(
+          heading: '4. Limitarea răspunderii',
+          body:
+              'Bac Pro nu garantează obținerea unei note sau promovarea examenului. Rezultatele depind de pregătirea individuală, iar utilizatorul își asumă deciziile luate pe baza informațiilor din aplicație.',
+        ),
+        _PolicySection(
+          heading: '5. Actualizări',
+          body:
+              'Putem actualiza funcțiile, interfața și regulile aplicației pentru îmbunătățire continuă. Continuarea utilizării după update reprezintă acceptarea noilor condiții.',
+        ),
+      ],
+    );
+  }
+}
+
+class PrivacyPolicyScreen extends StatelessWidget {
+  const PrivacyPolicyScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return _PolicyTemplateScreen(
+      title: 'Politica de confidențialitate',
+      sections: const [
+        _PolicySection(
+          heading: '1. Date colectate',
+          body:
+              'Aplicația poate salva local și în Firebase date de profil (nume, email), setări (temă, haptic), sesiuni de studiu, notițe și feedback trimis către dezvoltator.',
+        ),
+        _PolicySection(
+          heading: '2. Scopul prelucrării',
+          body:
+              'Datele sunt folosite pentru funcționarea aplicației: sincronizare progres, personalizare experiență și îmbunătățirea produsului.',
+        ),
+        _PolicySection(
+          heading: '3. Stocare și securitate',
+          body:
+              'Datele sunt stocate prin servicii Firebase și pe dispozitivul tău (acolo unde este cazul). Aplicăm măsuri tehnice rezonabile pentru protecția informațiilor.',
+        ),
+        _PolicySection(
+          heading: '4. Drepturile tale',
+          body:
+              'Poți solicita actualizarea datelor din profil, poți dezactiva anumite funcții (ex. notificări/haptic) și poți șterge istoricul direct din ecranul de setări.',
+        ),
+        _PolicySection(
+          heading: '5. Contact',
+          body:
+              'Pentru întrebări legate de confidențialitate, folosește secțiunea „Mesaje dezvoltator” din aplicație.',
+        ),
+      ],
+    );
+  }
+}
+
+class _PolicyTemplateScreen extends StatelessWidget {
+  final String title;
+  final List<_PolicySection> sections;
+
+  const _PolicyTemplateScreen({required this.title, required this.sections});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: 96,
+            backgroundColor: AppColors.background,
+            surfaceTintColor: Colors.transparent,
+            scrolledUnderElevation: 0.5,
+            shadowColor: AppColors.separator,
+            leading: CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: () => Navigator.pop(context),
+              child: const Icon(CupertinoIcons.back, color: AppColors.blue),
+            ),
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
+              title: Text(title, style: AppText.largeTitleStyle),
+              expandedTitleScale: 1.0,
+              collapseMode: CollapseMode.none,
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.separator),
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (int i = 0; i < sections.length; i++) ...[
+                      Text(
+                        sections[i].heading,
+                        style: AppText.bodyStyle.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(sections[i].body, style: AppText.subheadStyle),
+                      if (i != sections.length - 1) ...[
+                        const SizedBox(height: 14),
+                        Divider(color: AppColors.separator, height: 1),
+                        const SizedBox(height: 14),
+                      ],
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PolicySection {
+  final String heading;
+  final String body;
+
+  const _PolicySection({required this.heading, required this.body});
 }

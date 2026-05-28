@@ -1,8 +1,8 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/services.dart';
 
 import '../../../src/models/app_data.dart';
 import '../../../src/services/auth_service.dart';
+import '../../../src/services/app_settings.dart';
 import '../../../src/services/firestore_service.dart';
 import '../../../src/services/notification_service.dart';
 import '../../study_planner/services/study_planner_service.dart';
@@ -27,7 +27,7 @@ class _SetExamDateScreenState extends State<SetExamDateScreen> {
 
   Future<void> _save() async {
     setState(() => _saving = true);
-    HapticFeedback.mediumImpact();
+    AppHaptics.medium();
     await CountdownService.instance.setExamDate(_selectedDate);
     final user = AuthService.currentUser;
     if (user != null) {
