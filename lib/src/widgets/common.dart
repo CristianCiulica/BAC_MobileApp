@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -169,6 +171,141 @@ class CountBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text('$count materii', style: AppText.captionStyle),
+    );
+  }
+}
+
+class SubjectTitleCard extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final Color accentColor;
+
+  const SubjectTitleCard({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.accentColor = AppColors.indigo,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final backgroundColor = Color.lerp(
+      AppColors.surface,
+      accentColor,
+      AppColors.isDark ? 0.12 : 0.06,
+    )!;
+    final borderColor = AppColors.isDark
+        ? AppColors.separator.withAlpha(220)
+        : const Color(0xFFE2E6EC);
+    final surfaceBlend = Color.lerp(
+      AppColors.surface,
+      accentColor,
+      AppColors.isDark ? 0.08 : 0.03,
+    )!;
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [backgroundColor, surfaceBlend],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.isDark
+                ? Colors.black.withAlpha(20)
+                : Colors.black.withAlpha(10),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
+          children: [
+            Positioned(
+              left: -46,
+              top: -62,
+              child: ImageFiltered(
+                imageFilter: ui.ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+                child: Container(
+                  width: 170,
+                  height: 170,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        accentColor.withAlpha(AppColors.isDark ? 78 : 52),
+                        accentColor.withAlpha(0),
+                      ],
+                      stops: const [0.0, 1.0],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                18,
+                subtitle == null ? 18 : 16,
+                18,
+                16,
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 4,
+                    height: subtitle == null ? 42 : 50,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(99),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [accentColor, accentColor.withAlpha(150)],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              title,
+                              maxLines: 1,
+                              style: TextStyle(
+                                fontFamily: '.SF Pro Display',
+                                fontSize: 40,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.label,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (subtitle != null) ...[
+                          const SizedBox(height: 4),
+                          Text(subtitle!, style: AppText.subheadStyle),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

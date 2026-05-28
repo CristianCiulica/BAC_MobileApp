@@ -1975,7 +1975,7 @@ class YearSelectionScreen extends StatelessWidget {
         slivers: [
           SliverAppBar(
             pinned: true,
-            expandedHeight: 100,
+            toolbarHeight: 64,
             backgroundColor: AppColors.background,
             surfaceTintColor: Colors.transparent,
             scrolledUnderElevation: 0.5,
@@ -1985,16 +1985,18 @@ class YearSelectionScreen extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
               child: const Icon(CupertinoIcons.back, color: AppColors.blue),
             ),
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
-              title: Text(subjectName, style: AppText.largeTitleStyle),
-              expandedTitleScale: 1.0,
-              collapseMode: CollapseMode.none,
-            ),
           ),
           SliverToBoxAdapter(
             child: Column(
               children: [
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: SubjectTitleCard(
+                    title: subjectName,
+                    accentColor: subjectColor,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 IOSSection(
                   header: 'Alege anul',
@@ -2056,7 +2058,7 @@ class SessionSelectionScreen extends StatelessWidget {
         slivers: [
           SliverAppBar(
             pinned: true,
-            expandedHeight: 100,
+            toolbarHeight: 64,
             backgroundColor: AppColors.background,
             surfaceTintColor: Colors.transparent,
             scrolledUnderElevation: 0.5,
@@ -2066,24 +2068,20 @@ class SessionSelectionScreen extends StatelessWidget {
               onPressed: () => Navigator.pop(context),
               child: const Icon(CupertinoIcons.back, color: AppColors.blue),
             ),
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
-              title: Text(year, style: AppText.largeTitleStyle),
-              expandedTitleScale: 1.0,
-              collapseMode: CollapseMode.none,
-            ),
           ),
           SliverToBoxAdapter(
             child: Column(
               children: [
                 const SizedBox(height: 8),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-                  child: Text(
-                    '$subjectName · $year',
-                    style: AppText.subheadStyle,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: SubjectTitleCard(
+                    title: subjectName,
+                    subtitle: 'Anul $year',
+                    accentColor: subjectColor,
                   ),
                 ),
+                const SizedBox(height: 8),
                 IOSSection(
                   header: 'Alege sesiunea',
                   children: [
@@ -2345,7 +2343,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
         slivers: [
           SliverAppBar(
             pinned: true,
-            expandedHeight: 100,
+            toolbarHeight: 64,
             backgroundColor: AppColors.background,
             surfaceTintColor: Colors.transparent,
             scrolledUnderElevation: 0.5,
@@ -2355,17 +2353,20 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
               onPressed: () => Navigator.pop(context),
               child: const Icon(CupertinoIcons.back, color: AppColors.blue),
             ),
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(86, 0, 16, 14),
-              title: Text(widget.subjectName, style: AppText.largeTitleStyle),
-              expandedTitleScale: 1.0,
-              collapseMode: CollapseMode.none,
-            ),
           ),
           SliverToBoxAdapter(
             child: Column(
               children: [
                 const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: SubjectTitleCard(
+                    title: widget.subjectName,
+                    subtitle: '${widget.year} · ${widget.sessionName}',
+                    accentColor: widget.subjectColor,
+                  ),
+                ),
+                const SizedBox(height: 10),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Container(
