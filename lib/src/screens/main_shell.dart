@@ -937,6 +937,8 @@ class ProfileSelectionScreen extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: 16),
                 child: CountdownCard(),
               ),
+              const SizedBox(height: 12),
+              const _NextLevelSection(),
               IOSSection(
                 header: 'Profilul tău',
                 children: [
@@ -1101,6 +1103,225 @@ class _DashboardMetric extends StatelessWidget {
       ),
     );
   }
+}
+
+class _NextLevelSection extends StatelessWidget {
+  const _NextLevelSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return IOSSection(
+      header: 'Bac NextLevel',
+      footer:
+          'Resurse recomandate pentru progres rapid: PDF-uri, cărți și video-uri utile.',
+      children: [
+        IOSCell(
+          leading: const AppIconBadge(
+            icon: CupertinoIcons.doc_richtext,
+            color: AppColors.indigo,
+          ),
+          title: 'PDF-uri utile',
+          subtitle: 'Fișe, sinteze, variante și recapitulări',
+          onTap: () => Navigator.push(
+            context,
+            cupertinoRoute(
+              const ResourceCategoryScreen(
+                title: 'PDF-uri utile',
+                icon: CupertinoIcons.doc_richtext,
+                color: AppColors.indigo,
+                items: [
+                  ResourceItem(
+                    title: 'Fișe pe capitole',
+                    description:
+                        'Adaugă PDF-uri în assets/resources/pdfs/fise-capitole/',
+                  ),
+                  ResourceItem(
+                    title: 'Sinteze rapide',
+                    description:
+                        'Păstrează rezumatele scurte pentru recapitularea finală.',
+                  ),
+                  ResourceItem(
+                    title: 'Variante bac + bareme',
+                    description:
+                        'Centralizează variantele în același folder pentru acces rapid.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        IOSCell(
+          leading: const AppIconBadge(
+            icon: CupertinoIcons.book_fill,
+            color: AppColors.orange,
+          ),
+          title: 'Cărți recomandate',
+          subtitle: 'Ce merită cumpărat pentru pregătire',
+          onTap: () => Navigator.push(
+            context,
+            cupertinoRoute(
+              const ResourceCategoryScreen(
+                title: 'Cărți recomandate',
+                icon: CupertinoIcons.book_fill,
+                color: AppColors.orange,
+                items: [
+                  ResourceItem(
+                    title: 'Mate M1/M2 pe barem',
+                    description:
+                        'Selectează cărți cu structură pe punctaje 2p/3p/5p.',
+                  ),
+                  ResourceItem(
+                    title: 'Română pe eseuri + argumentare',
+                    description:
+                        'Alege materiale cu modele de redactare și scheme clare.',
+                  ),
+                  ResourceItem(
+                    title: 'Info/istorie/biologie dedicate profilului',
+                    description:
+                        'Păstrează recomandări separate pentru fiecare profil.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        IOSCell(
+          leading: const AppIconBadge(
+            icon: CupertinoIcons.play_rectangle_fill,
+            color: AppColors.teal,
+          ),
+          title: 'Video-uri explicative',
+          subtitle: 'Playlist-uri și recapitulări pe capitole',
+          onTap: () => Navigator.push(
+            context,
+            cupertinoRoute(
+              const ResourceCategoryScreen(
+                title: 'Video-uri explicative',
+                icon: CupertinoIcons.play_rectangle_fill,
+                color: AppColors.teal,
+                items: [
+                  ResourceItem(
+                    title: 'Recapitulări scurte',
+                    description:
+                        'Conținut de 10-20 min pentru noțiunile esențiale.',
+                  ),
+                  ResourceItem(
+                    title: 'Rezolvări complete pe variante',
+                    description:
+                        'Video-uri care explică pașii de notare după barem.',
+                  ),
+                  ResourceItem(
+                    title: 'Simulări cronometrate',
+                    description:
+                        'Urmărește o rezolvare în timp real pentru ritm de examen.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class ResourceCategoryScreen extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final Color color;
+  final List<ResourceItem> items;
+
+  const ResourceCategoryScreen({
+    super.key,
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.items,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: 100,
+            backgroundColor: AppColors.background,
+            surfaceTintColor: Colors.transparent,
+            scrolledUnderElevation: 0.5,
+            shadowColor: AppColors.separator,
+            leading: CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: () => Navigator.pop(context),
+              child: const Icon(CupertinoIcons.back, color: AppColors.blue),
+            ),
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
+              title: Text(title, style: AppText.largeTitleStyle),
+              expandedTitleScale: 1.0,
+              collapseMode: CollapseMode.none,
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Column(
+              children: [
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.separator),
+                    ),
+                    child: Row(
+                      children: [
+                        AppIconBadge(icon: icon, color: color, size: 46),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Poți adăuga materiale local în `assets/resources/` și le centralizăm aici.',
+                            style: AppText.subheadStyle,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                IOSSection(
+                  header: 'Recomandări',
+                  children: [
+                    for (final item in items)
+                      IOSCell(
+                        leading: AppIconBadge(
+                          icon: CupertinoIcons.checkmark_seal_fill,
+                          color: color,
+                        ),
+                        title: item.title,
+                        subtitle: item.description,
+                        onTap: () {},
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 36),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ResourceItem {
+  final String title;
+  final String description;
+
+  const ResourceItem({required this.title, required this.description});
 }
 
 class SubjectListScreen extends StatelessWidget {
@@ -1445,8 +1666,8 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
 
   Future<void> _startTimer() async {
     final assets = _pdfAssets;
-    final assetPath = assets?.subjectPdfAsset;
-    if (assetPath == null || assetPath.isEmpty) {
+    final pdfPath = assets?.subjectPdfAsset;
+    if (pdfPath == null || pdfPath.isEmpty) {
       if (!mounted) return;
       showCupertinoDialog(
         context: context,
@@ -1464,7 +1685,8 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
       context,
       cupertinoRoute(
         PdfFullscreenScreen(
-          assetPath: assetPath,
+          assetPath: pdfPath,
+          isRemote: _isRemotePdfPath(pdfPath),
           title: widget.subjectName,
           initialPage: 1,
           examMode: true,
@@ -1561,7 +1783,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
       _pdfAssets = assets;
       _pdfLoading = false;
       _pdfError = assets == null
-          ? 'Nu am găsit PDF local pentru această selecție în assets/subiecte.'
+          ? 'Nu am găsit document asociat pentru această selecție.'
           : null;
     });
   }
@@ -1584,11 +1806,17 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
       cupertinoRoute(
         PdfFullscreenScreen(
           assetPath: assetPath,
+          isRemote: _isRemotePdfPath(assetPath),
           title: widget.subjectName,
           initialPage: 1,
         ),
       ),
     );
+  }
+
+  bool _isRemotePdfPath(String path) {
+    final trimmed = path.trim().toLowerCase();
+    return trimmed.startsWith('http://') || trimmed.startsWith('https://');
   }
 
   @override
@@ -1610,7 +1838,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
               child: const Icon(CupertinoIcons.back, color: AppColors.blue),
             ),
             flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
+              titlePadding: const EdgeInsets.fromLTRB(72, 0, 16, 14),
               title: Text(widget.subjectName, style: AppText.largeTitleStyle),
               expandedTitleScale: 1.0,
               collapseMode: CollapseMode.none,
@@ -1867,7 +2095,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                               if (assetPath == null ||
                                   assetPath.trim().isEmpty) {
                                 return Text(
-                                  'Nu există PDF local pentru această selecție.\nAdaugă-l în `assets/subiecte/<materie>`.',
+                                  'Nu există document disponibil pentru această selecție.',
                                   style: AppText.subheadStyle,
                                   textAlign: TextAlign.center,
                                 );
@@ -2103,6 +2331,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
 
 class PdfFullscreenScreen extends StatefulWidget {
   final String assetPath;
+  final bool isRemote;
   final String title;
   final int initialPage;
   final bool examMode;
@@ -2112,6 +2341,7 @@ class PdfFullscreenScreen extends StatefulWidget {
   const PdfFullscreenScreen({
     super.key,
     required this.assetPath,
+    this.isRemote = false,
     required this.title,
     required this.initialPage,
     this.examMode = false,
@@ -2233,30 +2463,7 @@ class _PdfFullscreenScreenState extends State<PdfFullscreenScreen> {
         body: SafeArea(
           child: Stack(
             children: [
-              Positioned.fill(
-                child: PdfViewer.asset(
-                  widget.assetPath,
-                  controller: _controller,
-                  initialPageNumber: widget.initialPage,
-                  params: PdfViewerParams(
-                    backgroundColor: Colors.black,
-                    panEnabled: true,
-                    scaleEnabled: true,
-                    onViewerReady: (document, controller) {
-                      if (!mounted) return;
-                      setState(() {
-                        _pageCount = controller.pageCount;
-                        _currentPage =
-                            controller.pageNumber ?? widget.initialPage;
-                      });
-                    },
-                    onPageChanged: (pageNumber) {
-                      if (!mounted || pageNumber == null) return;
-                      setState(() => _currentPage = pageNumber);
-                    },
-                  ),
-                ),
-              ),
+              Positioned.fill(child: _buildPdfViewer()),
               if (widget.examMode)
                 Positioned(
                   left: 12,
@@ -2317,6 +2524,41 @@ class _PdfFullscreenScreenState extends State<PdfFullscreenScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPdfViewer() {
+    final params = PdfViewerParams(
+      backgroundColor: Colors.black,
+      panEnabled: true,
+      scaleEnabled: true,
+      onViewerReady: (document, controller) {
+        if (!mounted) return;
+        setState(() {
+          _pageCount = controller.pageCount;
+          _currentPage = controller.pageNumber ?? widget.initialPage;
+        });
+      },
+      onPageChanged: (pageNumber) {
+        if (!mounted || pageNumber == null) return;
+        setState(() => _currentPage = pageNumber);
+      },
+    );
+
+    if (widget.isRemote) {
+      return PdfViewer.uri(
+        Uri.parse(widget.assetPath),
+        controller: _controller,
+        initialPageNumber: widget.initialPage,
+        params: params,
+      );
+    }
+
+    return PdfViewer.asset(
+      widget.assetPath,
+      controller: _controller,
+      initialPageNumber: widget.initialPage,
+      params: params,
     );
   }
 }

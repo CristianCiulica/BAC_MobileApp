@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -575,17 +573,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 loading: _isLoading,
                                 onPressed: _isLoading ? null : _register,
                               ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Ai deja cont',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: _AuthColors.textMuted,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 14),
                               GestureDetector(
                                 onTap: () {
                                   HapticFeedback.selectionClick();
@@ -606,7 +594,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 14),
                               const _AuthSectionDivider(
                                 label: 'Sau continuă cu',
                               ),
@@ -1024,32 +1012,15 @@ class _SocialAuthRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _SocialIconSquare(
-          enabled: enabled,
-          onTap: onGoogleTap,
-          child: CustomPaint(
-            painter: _GoogleLogoPainter(),
-            size: const Size(20, 20),
-          ),
-        ),
-      ],
-    );
+    return _GoogleAuthButton(enabled: enabled, onTap: onGoogleTap);
   }
 }
 
-class _SocialIconSquare extends StatelessWidget {
-  final Widget child;
+class _GoogleAuthButton extends StatelessWidget {
   final bool enabled;
   final VoidCallback onTap;
 
-  const _SocialIconSquare({
-    required this.child,
-    required this.enabled,
-    required this.onTap,
-  });
+  const _GoogleAuthButton({required this.enabled, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1061,27 +1032,36 @@ class _SocialIconSquare extends StatelessWidget {
             }
           : null,
       child: Opacity(
-        opacity: enabled ? 1 : 0.5,
-        child: _StaticSocialIcon(child: child),
+        opacity: enabled ? 1 : 0.45,
+        child: Container(
+          height: 54,
+          width: 190,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F3F8),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE0E4EE)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CustomPaint(
+                painter: _GoogleLogoPainter(),
+                size: const Size(24, 24),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'Google',
+                style: TextStyle(
+                  color: Color(0xFF343741),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
-    );
-  }
-}
-
-class _StaticSocialIcon extends StatelessWidget {
-  final Widget child;
-  const _StaticSocialIcon({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 56,
-      height: 48,
-      decoration: BoxDecoration(
-        color: const Color(0xFFECECEC),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Center(child: child),
     );
   }
 }
@@ -1089,30 +1069,34 @@ class _StaticSocialIcon extends StatelessWidget {
 class _GoogleLogoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
+    final strokeWidth = size.width * 0.22;
+    final radius = (size.width - strokeWidth) / 2;
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = math.min(size.width, size.height) / 2;
-    canvas.drawCircle(center, radius, Paint()..color = const Color(0xFFF4F4F4));
+    final rect = Rect.fromCircle(center: center, radius: radius);
 
-    final textPainter = TextPainter(
-      text: const TextSpan(
-        text: 'G',
-        style: TextStyle(
-          color: Color(0xFF4285F4),
-          fontSize: 14,
-          fontWeight: FontWeight.w800,
-          fontFamily: '.SF Pro Display',
-        ),
-      ),
-      textDirection: TextDirection.ltr,
-    );
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset(
-        center.dx - textPainter.width / 2,
-        center.dy - textPainter.height / 2,
-      ),
-    );
+    final paint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    paint.color = const Color(0xFFEA4335);
+    canvas.drawArc(rect, -0.72, 1.45, false, paint);
+    paint.color = const Color(0xFFFBBC05);
+    canvas.drawArc(rect, 0.73, 1.0, false, paint);
+    paint.color = const Color(0xFF34A853);
+    canvas.drawArc(rect, 1.74, 1.15, false, paint);
+    paint.color = const Color(0xFF4285F4);
+    canvas.drawArc(rect, 2.88, 2.25, false, paint);
+
+    final barPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..color = const Color(0xFF4285F4);
+
+    final barStart = Offset(center.dx + radius * 0.02, center.dy);
+    final barEnd = Offset(size.width - strokeWidth * 0.35, center.dy);
+    canvas.drawLine(barStart, barEnd, barPaint);
   }
 
   @override

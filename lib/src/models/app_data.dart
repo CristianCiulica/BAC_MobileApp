@@ -395,8 +395,8 @@ const List<ExamSession> examSessions = [
     color: AppColors.teal,
   ),
   ExamSession(
-    name: 'Modele oficiale',
-    desc: 'Variante orientative de la minister',
+    name: 'Sesiunea Specială',
+    desc: 'Calendar separat pentru candidați eligibili',
     icon: CupertinoIcons.doc_text_fill,
     color: AppColors.green,
   ),

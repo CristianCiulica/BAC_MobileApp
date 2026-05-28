@@ -7,12 +7,29 @@ import 'firestore_service.dart';
 class LocalExamPdfService {
   LocalExamPdfService._();
 
+  static const String _mateInfoMath2025JuneUrl =
+      'https://www.e3.ro/wp-content/uploads/2025/06/E_c_matematica_M_mate-info_2025_var_01_LRO.pdf';
+  static const String _mateInfoMath2024JuneUrl =
+      'https://www.e3.ro/wp-content/uploads/2024/07/E_c_matematica_M_mate-info_2024_var_10_LRO.pdf';
+  static const String _tehnoMath2025JuneUrl =
+      'https://www.e3.ro/wp-content/uploads/2025/06/E_c_matematica_M_tehnologic_2025_var_01_LRO.pdf';
+  static const String _tehnoMath2025AutumnUrl =
+      'https://www.e3.ro/wp-content/uploads/2025/08/E_c_matematica_M_tehnologic_2025_var_09_LRO.pdf';
+
   static Future<ExamPdfAssets?> resolve({
     required String profile,
     required String subject,
     required String year,
     required String session,
   }) async {
+    final curated = _resolveCuratedRemotePdf(
+      profile: profile,
+      subject: subject,
+      year: year,
+      session: session,
+    );
+    if (curated != null) return curated;
+
     final direct = await _resolveDirectByConvention(
       profile: profile,
       subject: subject,
@@ -112,6 +129,65 @@ class LocalExamPdfService {
       subjectPdfAsset: subjectAsset,
       answerPdfAsset: answerAsset,
     );
+  }
+
+  static ExamPdfAssets? _resolveCuratedRemotePdf({
+    required String profile,
+    required String subject,
+    required String year,
+    required String session,
+  }) {
+    final normalizedProfile = _normalize(profile);
+    final normalizedSubject = _normalize(subject);
+    final normalizedSession = _normalize(session);
+    final normalizedYear = _normalize(year);
+
+    final isMateInfo = normalizedProfile.contains('mateinfo');
+    final isTehno = normalizedProfile.contains('tehnologic');
+    final isMath =
+        normalizedSubject.contains('matematica') ||
+        normalizedSubject.contains('mate') ||
+        normalizedSubject.contains('m1');
+    final isSummerSession =
+        normalizedSession.contains('iunie') ||
+        normalizedSession.contains('vara');
+    final isAutumnSession =
+        normalizedSession.contains('aug') ||
+        normalizedSession.contains('sept') ||
+        normalizedSession.contains('toamna');
+
+    if (isMateInfo &&
+        isMath &&
+        normalizedYear == '2025' &&
+        (isSummerSession || normalizedSession.contains('speciala'))) {
+      return const ExamPdfAssets(
+        subjectPdfAsset: _mateInfoMath2025JuneUrl,
+        answerPdfAsset: _mateInfoMath2025JuneUrl,
+      );
+    }
+
+    if (isMateInfo && isMath && normalizedYear == '2024' && isSummerSession) {
+      return const ExamPdfAssets(
+        subjectPdfAsset: _mateInfoMath2024JuneUrl,
+        answerPdfAsset: _mateInfoMath2024JuneUrl,
+      );
+    }
+
+    if (isTehno && isMath && normalizedYear == '2025' && isSummerSession) {
+      return const ExamPdfAssets(
+        subjectPdfAsset: _tehnoMath2025JuneUrl,
+        answerPdfAsset: _tehnoMath2025JuneUrl,
+      );
+    }
+
+    if (isTehno && isMath && normalizedYear == '2025' && isAutumnSession) {
+      return const ExamPdfAssets(
+        subjectPdfAsset: _tehnoMath2025AutumnUrl,
+        answerPdfAsset: _tehnoMath2025AutumnUrl,
+      );
+    }
+
+    return null;
   }
 
   static Future<ExamPdfAssets?> _resolveDirectByConvention({
@@ -230,6 +306,9 @@ class LocalExamPdfService {
       return ['aug', 'august', 'sept', 'septembrie', 'toamna'];
     }
     if (normalized.contains('simulare')) return ['simulare'];
+    if (normalized.contains('special')) {
+      return ['speciala', 'special', 'olimpici', 'militar'];
+    }
     if (normalized.contains('model')) return ['model', 'modele'];
     return [normalized];
   }
@@ -278,6 +357,7 @@ class LocalExamPdfService {
       return 'August';
     }
     if (normalized.contains('simulare')) return 'Simulare';
+    if (normalized.contains('special')) return 'Speciala';
     if (normalized.contains('model')) return 'Model';
     return 'Iunie';
   }

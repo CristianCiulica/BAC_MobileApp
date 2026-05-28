@@ -12,7 +12,7 @@ class CountdownService {
 
   static const String _storageKey = 'countdown_model_v1';
   static const int _defaultExamMonth = 6;
-  static const int _defaultExamDay = 30;
+  static const int _defaultExamDay = 29;
 
   final ValueNotifier<CountdownModel> notifier = ValueNotifier<CountdownModel>(
     CountdownModel.initial(
