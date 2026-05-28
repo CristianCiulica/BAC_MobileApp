@@ -5,11 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pdfrx/pdfrx.dart';
 
+import '../../features/countdown/widgets/countdown_card.dart';
 import '../models/app_data.dart';
 import '../navigation.dart';
 import '../services/app_settings.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import '../services/local_exam_pdf_service.dart';
 import '../widgets/common.dart';
 import 'account_screens.dart';
 import 'login_screen.dart';
@@ -894,52 +896,6 @@ class ProfileSelectionScreen extends StatelessWidget {
 
   const ProfileSelectionScreen({super.key, required this.scaffoldKey});
 
-  Profile _defaultProfile() {
-    return appProfiles.firstWhere(
-      (profile) => profile.name == 'Mate-Info',
-      orElse: () => appProfiles.first,
-    );
-  }
-
-  Subject _defaultSubject(Profile profile) {
-    return profile.subjects.firstWhere(
-      (subject) => subject.title.contains('Matematică'),
-      orElse: () => profile.subjects.first,
-    );
-  }
-
-  ExamSession _sessionByName(String name) {
-    return examSessions.firstWhere(
-      (session) => session.name == name,
-      orElse: () => examSessions.first,
-    );
-  }
-
-  void _openSessionShortcut(
-    BuildContext context, {
-    required String year,
-    required String sessionName,
-  }) {
-    final profile = _defaultProfile();
-    final subject = _defaultSubject(profile);
-    final session = _sessionByName(sessionName);
-
-    Navigator.push(
-      context,
-      cupertinoRoute(
-        SubjectDetailScreen(
-          profileName: profile.name,
-          subjectName: subject.title,
-          year: year,
-          sessionName: session.name,
-          subjectIcon: subject.icon,
-          subjectColor: subject.accentColor,
-          sessionColor: session.color,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return CustomScrollView(
@@ -974,6 +930,11 @@ class ProfileSelectionScreen extends StatelessWidget {
             children: [
               const SizedBox(height: 8),
               const _HomeOverviewPanel(),
+              const SizedBox(height: 12),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: CountdownCard(),
+              ),
               IOSSection(
                 header: 'Profilul tău',
                 children: [
@@ -991,50 +952,6 @@ class ProfileSelectionScreen extends StatelessWidget {
                         cupertinoRoute(SubjectListScreen(profile: profile)),
                       ),
                     ),
-                ],
-              ),
-              IOSSection(
-                header: 'Acces rapid',
-                children: [
-                  IOSCell(
-                    leading: const AppIconBadge(
-                      icon: CupertinoIcons.calendar_today,
-                      color: AppColors.red,
-                    ),
-                    title: '2025',
-                    subtitle: 'Cele mai recente subiecte',
-                    onTap: () => _openSessionShortcut(
-                      context,
-                      year: '2025',
-                      sessionName: 'Sesiunea Iunie',
-                    ),
-                  ),
-                  IOSCell(
-                    leading: const AppIconBadge(
-                      icon: CupertinoIcons.flame_fill,
-                      color: AppColors.orange,
-                    ),
-                    title: 'Simulare Națională',
-                    subtitle: 'Testare din primăvară',
-                    onTap: () => _openSessionShortcut(
-                      context,
-                      year: '2025',
-                      sessionName: 'Simulare Națională',
-                    ),
-                  ),
-                  IOSCell(
-                    leading: const AppIconBadge(
-                      icon: CupertinoIcons.star_fill,
-                      color: AppColors.purple,
-                    ),
-                    title: 'Sesiunea Iunie',
-                    subtitle: 'Examenul oficial principal',
-                    onTap: () => _openSessionShortcut(
-                      context,
-                      year: '2025',
-                      sessionName: 'Sesiunea Iunie',
-                    ),
-                  ),
                 ],
               ),
               const SizedBox(height: 40),
@@ -1500,89 +1417,108 @@ class SubjectDetailScreen extends StatefulWidget {
 class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
   static const int _bacDuration = 10800;
   int _secondsLeft = _bacDuration;
-  bool _timerRunning = false;
   bool _timerFinished = false;
-  Timer? _timer;
 
   final TextEditingController _notesController = TextEditingController();
   bool _editingNotes = false;
 
   double _estimatedGrade = 7.0;
-  ExamRubric? _coachRubric;
-  bool _coachLoading = true;
-  final Map<int, int> _coachScores = {};
   ExamPdfAssets? _pdfAssets;
   bool _pdfLoading = true;
   String? _pdfError;
   bool _showAnswerKey = false;
+  bool _examStarted = false;
 
   @override
   void initState() {
     super.initState();
-    _loadCoachRubric();
     _loadPdfAssets();
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
     _notesController.dispose();
     super.dispose();
   }
 
-  void _startTimer() {
-    HapticFeedback.mediumImpact();
-    setState(() => _timerRunning = true);
-    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      setState(() {
-        if (_secondsLeft > 0) {
-          _secondsLeft--;
-        } else {
-          _timerRunning = false;
-          _timerFinished = true;
-          t.cancel();
-          HapticFeedback.heavyImpact();
-          _showTimerFinishedDialog();
-        }
-      });
-    });
-  }
+  Future<void> _startTimer() async {
+    final assets = _pdfAssets;
+    final assetPath = assets?.subjectPdfAsset;
+    if (assetPath == null || assetPath.isEmpty) {
+      if (!mounted) return;
+      showCupertinoDialog(
+        context: context,
+        builder: (_) => const CupertinoAlertDialog(
+          title: Text('PDF indisponibil'),
+          content: Text('Nu există subiect local pentru această selecție.'),
+        ),
+      );
+      return;
+    }
 
-  void _pauseTimer() {
-    HapticFeedback.selectionClick();
-    _timer?.cancel();
-    setState(() => _timerRunning = false);
+    HapticFeedback.mediumImpact();
+    setState(() => _examStarted = true);
+    final result = await Navigator.push<ExamFullscreenResult>(
+      context,
+      cupertinoRoute(
+        PdfFullscreenScreen(
+          assetPath: assetPath,
+          title: widget.subjectName,
+          initialPage: 1,
+          examMode: true,
+          initialSecondsLeft: _secondsLeft,
+          totalDurationSeconds: _bacDuration,
+        ),
+      ),
+    );
+
+    if (!mounted) return;
+    if (result == null) {
+      setState(() {
+        _examStarted = _secondsLeft < _bacDuration;
+      });
+      return;
+    }
+    setState(() {
+      _secondsLeft = result.secondsLeft;
+      _timerFinished = result.isFinished;
+    });
   }
 
   void _resetTimer() {
-    _timer?.cancel();
     setState(() {
       _secondsLeft = _bacDuration;
-      _timerRunning = false;
       _timerFinished = false;
+      _examStarted = false;
     });
   }
 
-  void _showTimerFinishedDialog() {
-    showCupertinoDialog(
+  Future<void> _confirmStopExam() async {
+    HapticFeedback.selectionClick();
+    final shouldStop = await showCupertinoDialog<bool>(
       context: context,
       builder: (_) => CupertinoAlertDialog(
-        title: const Text('Timp expirat'),
+        title: const Text('Oprești rezolvarea?'),
         content: const Text(
-          'Cele 3 ore de examen s-au încheiat. Predă lucrarea.',
+          'Vrei să oprești acum rezolvarea subiectului? Progresul timerului va fi resetat.',
         ),
         actions: [
           CupertinoDialogAction(
-            isDefaultAction: true,
-            onPressed: () {
-              Navigator.pop(context);
-              _resetTimer();
-            },
-            child: const Text('OK'),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Continuă'),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Oprește'),
           ),
         ],
       ),
     );
+
+    if (shouldStop != true || !mounted) return;
+    _resetTimer();
+    Navigator.pop(context);
   }
 
   String get _formattedTime {
@@ -1600,178 +1536,32 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
     return AppColors.red;
   }
 
-  Future<void> _loadCoachRubric() async {
-    setState(() => _coachLoading = true);
-    try {
-      final fromFirestore = await FirestoreService.fetchExamRubric(
-        profile: widget.profileName,
-        subject: widget.subjectName,
-        year: widget.year,
-        session: widget.sessionName,
-      );
-      final rubric =
-          fromFirestore ??
-          ExamRubric.fallback(
-            profile: widget.profileName,
-            subject: widget.subjectName,
-            year: widget.year,
-            session: widget.sessionName,
-          );
-
-      _coachScores.clear();
-      for (var i = 0; i < rubric.criteria.length; i++) {
-        _coachScores[i] = _initialScoreForCriterion(rubric.criteria[i]);
-      }
-
-      if (!mounted) return;
-      setState(() {
-        _coachRubric = rubric;
-        _coachLoading = false;
-      });
-    } catch (_) {
-      final fallback = ExamRubric.fallback(
-        profile: widget.profileName,
-        subject: widget.subjectName,
-        year: widget.year,
-        session: widget.sessionName,
-      );
-      _coachScores.clear();
-      for (var i = 0; i < fallback.criteria.length; i++) {
-        _coachScores[i] = _initialScoreForCriterion(fallback.criteria[i]);
-      }
-      if (!mounted) return;
-      setState(() {
-        _coachRubric = fallback;
-        _coachLoading = false;
-      });
-    }
-  }
-
-  int get _coachMaxScore {
-    return _coachRubric?.maxScore ?? 0;
-  }
-
-  int get _coachTotalScore {
-    var total = 0;
-    _coachScores.forEach((_, value) {
-      total += value;
-    });
-    return total;
-  }
-
-  bool _isFixedCriterion(RubricCriterion criterion) {
-    final title = criterion.title.toLowerCase();
-    return title.contains('oficiu') || title.contains('punctaj din oficiu');
-  }
-
-  int _initialScoreForCriterion(RubricCriterion criterion) {
-    return _isFixedCriterion(criterion) ? criterion.maxPoints : 0;
-  }
-
-  double get _coachGrade {
-    if (_coachMaxScore <= 0) return 1.0;
-    final raw = (_coachTotalScore / _coachMaxScore) * 10.0;
-    return raw.clamp(1.0, 10.0);
-  }
-
-  void _applyCoachGradeToEstimate() {
-    HapticFeedback.mediumImpact();
-    setState(() => _estimatedGrade = _coachGrade);
-  }
-
-  void _resetCoach() {
-    HapticFeedback.selectionClick();
-    setState(() {
-      final rubric = _coachRubric;
-      if (rubric == null) {
-        _coachScores.updateAll((_, value) => 0);
-        return;
-      }
-      for (var i = 0; i < rubric.criteria.length; i++) {
-        _coachScores[i] = _initialScoreForCriterion(rubric.criteria[i]);
-      }
-    });
-  }
-
-  Future<void> _openCoachScoring() async {
-    final rubric = _coachRubric;
-    if (rubric == null) return;
-
-    final updatedScores = await Navigator.push<Map<int, int>>(
-      context,
-      cupertinoRoute(
-        CoachScoringScreen(
-          rubric: rubric,
-          initialScores: Map<int, int>.from(_coachScores),
-        ),
-      ),
-    );
-
-    if (!mounted || updatedScores == null) return;
-    setState(() {
-      _coachScores
-        ..clear()
-        ..addAll(updatedScores);
-    });
-  }
-
-  String _coachSummaryLine() {
-    return 'Coach BAC: $_coachTotalScore / $_coachMaxScore puncte (${_coachGrade.toStringAsFixed(1)})';
-  }
-
-  String _coachFocusLine() {
-    final rubric = _coachRubric;
-    if (rubric == null) {
-      return 'Continuă antrenamentul pe subiecte complete.';
-    }
-
-    final weak = <MapEntry<RubricCriterion, int>>[];
-    for (var i = 0; i < rubric.criteria.length; i++) {
-      final criterion = rubric.criteria[i];
-      final score = _coachScores[i] ?? 0;
-      final missing = criterion.maxPoints - score;
-      if (missing > 0) {
-        weak.add(MapEntry(criterion, missing));
-      }
-    }
-
-    if (weak.isEmpty) {
-      return 'Foarte bine. Lucrează pe cronometru pentru consistență.';
-    }
-
-    weak.sort((a, b) => b.value.compareTo(a.value));
-
-    final top = weak.take(2).toList();
-    if (top.length == 1) {
-      return 'Prioritate: ${top.first.key.title.toLowerCase()}.';
-    }
-    return 'Priorități: ${top[0].key.title.toLowerCase()} + ${top[1].key.title.toLowerCase()}.';
-  }
-
   Future<void> _loadPdfAssets() async {
     setState(() {
       _pdfLoading = true;
       _pdfError = null;
     });
+    ExamPdfAssets? localAssets;
     try {
-      final assets = await FirestoreService.fetchExamPdfAssets(
+      localAssets = await LocalExamPdfService.resolve(
         profile: widget.profileName,
         subject: widget.subjectName,
         year: widget.year,
         session: widget.sessionName,
       );
-      if (!mounted) return;
-      setState(() {
-        _pdfAssets = assets;
-        _pdfLoading = false;
-      });
     } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _pdfLoading = false;
-        _pdfError = 'Nu am putut încărca documentele asociate subiectului.';
-      });
+      localAssets = null;
     }
+
+    final assets = localAssets;
+    if (!mounted) return;
+    setState(() {
+      _pdfAssets = assets;
+      _pdfLoading = false;
+      _pdfError = assets == null
+          ? 'Nu am găsit PDF local pentru această selecție în assets/subiecte.'
+          : null;
+    });
   }
 
   String? get _activePdfAssetPath {
@@ -1781,9 +1571,22 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
   }
 
   String _timerStatusLabel() {
-    if (_timerRunning) return 'În desfășurare';
     if (_timerFinished) return 'Finalizat';
+    if (_secondsLeft < _bacDuration) return 'În desfășurare';
     return 'Pregătit';
+  }
+
+  Future<void> _openPdfFullscreen(String assetPath) async {
+    await Navigator.push(
+      context,
+      cupertinoRoute(
+        PdfFullscreenScreen(
+          assetPath: assetPath,
+          title: widget.subjectName,
+          initialPage: 1,
+        ),
+      ),
+    );
   }
 
   @override
@@ -1801,36 +1604,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
             shadowColor: AppColors.separator,
             leading: CupertinoButton(
               padding: EdgeInsets.zero,
-              onPressed: () {
-                if (_timerRunning) {
-                  _pauseTimer();
-                  showCupertinoDialog(
-                    context: context,
-                    builder: (_) => CupertinoAlertDialog(
-                      title: const Text('Ieși din subiect?'),
-                      content: const Text(
-                        'Timerul va fi oprit. Progresul tău se va salva.',
-                      ),
-                      actions: [
-                        CupertinoDialogAction(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Rămâi'),
-                        ),
-                        CupertinoDialogAction(
-                          isDestructiveAction: true,
-                          onPressed: () {
-                            Navigator.pop(context);
-                            Navigator.pop(context);
-                          },
-                          child: const Text('Ieși'),
-                        ),
-                      ],
-                    ),
-                  );
-                } else {
-                  Navigator.pop(context);
-                }
-              },
+              onPressed: () => Navigator.pop(context),
               child: const Icon(CupertinoIcons.back, color: AppColors.blue),
             ),
             flexibleSpace: FlexibleSpaceBar(
@@ -1966,14 +1740,12 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                                   vertical: 10,
                                 ),
                                 borderRadius: BorderRadius.circular(10),
-                                color: _timerRunning
-                                    ? AppColors.orange
-                                    : AppColors.green,
-                                onPressed: _timerRunning
-                                    ? _pauseTimer
-                                    : _startTimer,
+                                color: AppColors.green,
+                                onPressed: _startTimer,
                                 child: Text(
-                                  _timerRunning ? 'Pauză' : 'Start 3h',
+                                  _secondsLeft == _bacDuration
+                                      ? 'Start 3h'
+                                      : 'Continuă fullscreen',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
@@ -1988,12 +1760,16 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                                 vertical: 10,
                               ),
                               borderRadius: BorderRadius.circular(10),
-                              color: AppColors.background,
-                              onPressed: _resetTimer,
+                              color: _examStarted
+                                  ? AppColors.red
+                                  : AppColors.background,
+                              onPressed: _examStarted ? _confirmStopExam : null,
                               child: Text(
-                                'Reset',
+                                'Oprește',
                                 style: TextStyle(
-                                  color: AppColors.secondLabel,
+                                  color: _examStarted
+                                      ? Colors.white
+                                      : AppColors.tertiaryLabel,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -2057,53 +1833,60 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                                 },
                                 onValueChanged: (value) {
                                   if (value == null) return;
-                                  setState(() => _showAnswerKey = value);
+                                  setState(() {
+                                    _showAnswerKey = value;
+                                  });
                                 },
                               ),
                             ],
                           ),
                         ),
                         const Divider(height: 1),
-                        SizedBox(
-                          height: 500,
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
                           child: Builder(
                             builder: (context) {
                               if (_pdfLoading) {
-                                return const Center(
-                                  child: CupertinoActivityIndicator(),
+                                return const SizedBox(
+                                  height: 44,
+                                  child: Center(
+                                    child: CupertinoActivityIndicator(),
+                                  ),
                                 );
                               }
                               if (_pdfError != null) {
-                                return Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(20),
-                                    child: Text(
-                                      _pdfError!,
-                                      style: AppText.subheadStyle,
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
+                                return Text(
+                                  _pdfError!,
+                                  style: AppText.subheadStyle,
+                                  textAlign: TextAlign.center,
                                 );
                               }
                               final assetPath = _activePdfAssetPath;
                               if (assetPath == null ||
                                   assetPath.trim().isEmpty) {
-                                return Center(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(20),
-                                    child: Text(
-                                      'Nu există PDF configurat pentru această selecție.\nAdaugă-l în `exam_pdfs`.',
-                                      style: AppText.subheadStyle,
-                                      textAlign: TextAlign.center,
-                                    ),
-                                  ),
+                                return Text(
+                                  'Nu există PDF local pentru această selecție.\nAdaugă-l în `assets/subiecte/<materie>`.',
+                                  style: AppText.subheadStyle,
+                                  textAlign: TextAlign.center,
                                 );
                               }
-                              return ClipRRect(
-                                borderRadius: const BorderRadius.vertical(
-                                  bottom: Radius.circular(14),
+                              return SizedBox(
+                                width: double.infinity,
+                                child: CupertinoButton(
+                                  color: AppColors.blue,
+                                  borderRadius: BorderRadius.circular(10),
+                                  onPressed: () async {
+                                    HapticFeedback.selectionClick();
+                                    await _openPdfFullscreen(assetPath);
+                                  },
+                                  child: const Text(
+                                    'Previzualizare',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
                                 ),
-                                child: PdfViewer.asset(assetPath),
                               );
                             },
                           ),
@@ -2179,141 +1962,6 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                     ),
                   ],
                 ),
-                IOSSection(
-                  header: 'Coach BAC (gratis)',
-                  children: [
-                    if (_coachLoading)
-                      const Padding(
-                        padding: EdgeInsets.all(18),
-                        child: Center(child: CupertinoActivityIndicator()),
-                      )
-                    else if (_coachRubric == null)
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Text(
-                          'Nu am putut încărca baremul. Încearcă din nou.',
-                          style: AppText.subheadStyle,
-                        ),
-                      )
-                    else
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _coachRubric!.strategyTip,
-                              style: AppText.subheadStyle,
-                            ),
-                            const SizedBox(height: 12),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.background,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      _coachSummaryLine(),
-                                      style: AppText.bodyStyle,
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 5,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _gradeColor(
-                                        _coachGrade,
-                                      ).withAlpha(38),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      _coachGrade.toStringAsFixed(1),
-                                      style: TextStyle(
-                                        color: _gradeColor(_coachGrade),
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              _coachFocusLine(),
-                              style: AppText.subheadStyle,
-                            ),
-                            const SizedBox(height: 12),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: CupertinoButton(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 10,
-                                    ),
-                                    color: AppColors.blue,
-                                    borderRadius: BorderRadius.circular(10),
-                                    onPressed: _openCoachScoring,
-                                    child: const Text(
-                                      'Deschide Coach',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: CupertinoButton(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 10,
-                                    ),
-                                    color: AppColors.background,
-                                    borderRadius: BorderRadius.circular(10),
-                                    onPressed: _applyCoachGradeToEstimate,
-                                    child: Text(
-                                      'Aplică nota',
-                                      style: TextStyle(
-                                        color: AppColors.secondLabel,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: CupertinoButton(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 6,
-                                ),
-                                onPressed: _resetCoach,
-                                child: Text(
-                                  'Reset punctaj',
-                                  style: TextStyle(
-                                    color: AppColors.secondLabel,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
                 Padding(
                   padding: EdgeInsets.fromLTRB(20, 20, 20, 6),
                   child: Align(
@@ -2387,14 +2035,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                       onPressed: () async {
                         HapticFeedback.heavyImpact();
                         final user = AuthService.currentUser;
-                        final coachSummary = _coachRubric == null
-                            ? ''
-                            : '${_coachSummaryLine()}\n${_coachFocusLine()}';
                         final cleanNotes = _notesController.text.trim();
-                        final mergedNotes = [
-                          if (cleanNotes.isNotEmpty) cleanNotes,
-                          if (coachSummary.isNotEmpty) coachSummary,
-                        ].join('\n\n');
                         if (user != null) {
                           await FirestoreService.addSession(
                             user,
@@ -2404,7 +2045,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                               sessionName: widget.sessionName,
                               durationSeconds: _bacDuration - _secondsLeft,
                               estimatedGrade: _estimatedGrade,
-                              notes: mergedNotes,
+                              notes: cleanNotes,
                               completedAt: DateTime.now(),
                             ),
                           );
@@ -2457,126 +2098,211 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
   }
 }
 
-class CoachScoringScreen extends StatefulWidget {
-  final ExamRubric rubric;
-  final Map<int, int> initialScores;
+class PdfFullscreenScreen extends StatefulWidget {
+  final String assetPath;
+  final String title;
+  final int initialPage;
+  final bool examMode;
+  final int initialSecondsLeft;
+  final int totalDurationSeconds;
 
-  const CoachScoringScreen({
+  const PdfFullscreenScreen({
     super.key,
-    required this.rubric,
-    required this.initialScores,
+    required this.assetPath,
+    required this.title,
+    required this.initialPage,
+    this.examMode = false,
+    this.initialSecondsLeft = 10800,
+    this.totalDurationSeconds = 10800,
   });
 
   @override
-  State<CoachScoringScreen> createState() => _CoachScoringScreenState();
+  State<PdfFullscreenScreen> createState() => _PdfFullscreenScreenState();
 }
 
-class _CoachScoringScreenState extends State<CoachScoringScreen> {
-  late final Map<int, int> _scores;
+class _PdfFullscreenScreenState extends State<PdfFullscreenScreen> {
+  final PdfViewerController _controller = PdfViewerController();
+  int _currentPage = 1;
+  int _pageCount = 0;
+  Timer? _timer;
+  late int _secondsLeft = widget.initialSecondsLeft;
 
   @override
   void initState() {
     super.initState();
-    _scores = Map<int, int>.from(widget.initialScores);
+    if (widget.examMode) {
+      _startTimer();
+    }
   }
 
-  bool _isFixedCriterion(RubricCriterion criterion) {
-    final title = criterion.title.toLowerCase();
-    return title.contains('oficiu') || title.contains('punctaj din oficiu');
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
-  List<int> _allowedOptions(RubricCriterion criterion) {
-    if (_isFixedCriterion(criterion)) {
-      return [criterion.maxPoints];
-    }
-
-    final values = <int>{0};
-    for (final candidate in const [2, 3, 5]) {
-      if (candidate <= criterion.maxPoints) {
-        values.add(candidate);
-      }
-    }
-
-    if (values.length == 1 && criterion.maxPoints > 0) {
-      values.add(criterion.maxPoints);
-    }
-
-    final result = values.toList()..sort();
-    return result;
+  String get _formattedTime {
+    final h = _secondsLeft ~/ 3600;
+    final m = (_secondsLeft % 3600) ~/ 60;
+    final s = _secondsLeft % 60;
+    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
-  int _totalScore() {
-    var total = 0;
-    _scores.forEach((_, value) => total += value);
-    return total;
+  double get _timerProgress =>
+      (widget.totalDurationSeconds - _secondsLeft) /
+      widget.totalDurationSeconds;
+
+  Color get _timerColor {
+    if (_secondsLeft > 3600) return AppColors.green;
+    if (_secondsLeft > 900) return AppColors.orange;
+    return AppColors.red;
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) return;
+      setState(() {
+        if (_secondsLeft > 0) {
+          _secondsLeft--;
+        } else {
+          t.cancel();
+          HapticFeedback.heavyImpact();
+        }
+      });
+    });
+  }
+
+  Future<void> _goToNextPage() async {
+    if (!_controller.isReady) return;
+    final current = _controller.pageNumber ?? _currentPage;
+    final maxPage = _pageCount > 0 ? _pageCount : _controller.pageCount;
+    if (current >= maxPage) return;
+    await _controller.goToPage(pageNumber: current + 1);
+  }
+
+  Future<bool> _onWillPop() async {
+    Navigator.pop(
+      context,
+      ExamFullscreenResult(
+        secondsLeft: _secondsLeft,
+        isFinished: _secondsLeft == 0,
+      ),
+    );
+    return false;
   }
 
   @override
   Widget build(BuildContext context) {
-    final maxScore = widget.rubric.maxScore;
-    final total = _totalScore();
-    final grade = maxScore == 0 ? 1.0 : ((total / maxScore) * 10).clamp(1, 10);
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 96,
-            backgroundColor: AppColors.background,
-            surfaceTintColor: Colors.transparent,
-            scrolledUnderElevation: 0.5,
-            shadowColor: AppColors.separator,
-            leading: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () => Navigator.pop(context),
-              child: const Icon(CupertinoIcons.back, color: AppColors.blue),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
-              title: Text('Coach BAC', style: AppText.largeTitleStyle),
-              expandedTitleScale: 1.0,
-              collapseMode: CollapseMode.none,
-            ),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          _onWillPop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          title: Text(
+            'PDF · Pagina $_currentPage${_pageCount > 0 ? '/$_pageCount' : ''}',
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
-          SliverToBoxAdapter(
-            child: Column(
-              children: [
-                const SizedBox(height: 12),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+          leading: IconButton(
+            icon: const Icon(CupertinoIcons.back, color: Colors.white),
+            onPressed: () {
+              _onWillPop();
+            },
+          ),
+          actions: [
+            IconButton(
+              tooltip: 'Pagina următoare',
+              onPressed: _goToNextPage,
+              icon: const Icon(
+                CupertinoIcons.chevron_right,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        body: SafeArea(
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: PdfViewer.asset(
+                  widget.assetPath,
+                  controller: _controller,
+                  initialPageNumber: widget.initialPage,
+                  params: PdfViewerParams(
+                    backgroundColor: Colors.black,
+                    panEnabled: true,
+                    scaleEnabled: true,
+                    onViewerReady: (document, controller) {
+                      if (!mounted) return;
+                      setState(() {
+                        _pageCount = controller.pageCount;
+                        _currentPage =
+                            controller.pageNumber ?? widget.initialPage;
+                      });
+                    },
+                    onPageChanged: (pageNumber) {
+                      if (!mounted || pageNumber == null) return;
+                      setState(() => _currentPage = pageNumber);
+                    },
+                  ),
+                ),
+              ),
+              if (widget.examMode)
+                Positioned(
+                  left: 12,
+                  right: 12,
+                  top: 12,
                   child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 9,
                     ),
-                    child: Row(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: Text(
-                            '$total/$maxScore puncte',
-                            style: AppText.bodyStyle.copyWith(
-                              fontWeight: FontWeight.w600,
+                        Row(
+                          children: [
+                            Text(
+                              _formattedTime,
+                              style: TextStyle(
+                                color: _timerColor,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 15,
+                              ),
                             ),
-                          ),
+                            const Spacer(),
+                            Text(
+                              '${(_secondsLeft / 60).ceil()} min',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.green.withAlpha(35),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            grade.toStringAsFixed(1),
-                            style: const TextStyle(
-                              color: AppColors.green,
-                              fontWeight: FontWeight.w700,
+                        const SizedBox(height: 8),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: LinearProgressIndicator(
+                            minHeight: 4,
+                            value: _timerProgress.clamp(0, 1),
+                            backgroundColor: Colors.white24,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              _timerColor,
                             ),
                           ),
                         ),
@@ -2584,118 +2310,20 @@ class _CoachScoringScreenState extends State<CoachScoringScreen> {
                     ),
                   ),
                 ),
-                IOSSection(
-                  header: 'Punctaj pe barem',
-                  footer:
-                      'Punctarea este discretă: 2p, 3p, 5p (fără 1p sau 4p).',
-                  children: [
-                    ...List.generate(widget.rubric.criteria.length, (index) {
-                      final criterion = widget.rubric.criteria[index];
-                      final options = _allowedOptions(criterion);
-                      final selected = _scores[index] ?? options.first;
-                      final isFixed = _isFixedCriterion(criterion);
-
-                      return Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    criterion.title,
-                                    style: AppText.bodyStyle,
-                                  ),
-                                ),
-                                Text(
-                                  '$selected/${criterion.maxPoints}p',
-                                  style: AppText.captionStyle,
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: options.map((value) {
-                                final active = value == selected;
-                                return GestureDetector(
-                                  onTap: isFixed
-                                      ? null
-                                      : () {
-                                          HapticFeedback.selectionClick();
-                                          setState(
-                                            () => _scores[index] = value,
-                                          );
-                                        },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: active
-                                          ? AppColors.blue
-                                          : AppColors.background,
-                                      borderRadius: BorderRadius.circular(9),
-                                      border: Border.all(
-                                        color: active
-                                            ? AppColors.blue
-                                            : AppColors.separator,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      '${value}p',
-                                      style: TextStyle(
-                                        color: active
-                                            ? Colors.white
-                                            : AppColors.secondLabel,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                            ),
-                            if (criterion.guidance.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Text(
-                                criterion.guidance,
-                                style: AppText.captionStyle,
-                              ),
-                            ],
-                          ],
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 30),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: CupertinoButton(
-                      color: AppColors.blue,
-                      borderRadius: BorderRadius.circular(12),
-                      onPressed: () {
-                        Navigator.pop(context, Map<int, int>.from(_scores));
-                      },
-                      child: const Text(
-                        'Salvează punctajul',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
+}
+
+class ExamFullscreenResult {
+  final int secondsLeft;
+  final bool isFinished;
+
+  const ExamFullscreenResult({
+    required this.secondsLeft,
+    required this.isFinished,
+  });
 }

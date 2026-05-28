@@ -28,3 +28,17 @@ flutter:
   assets:
     - assets/pdfs/
     - assets/images/
+    - assets/subiecte/
+    - assets/subiecte/matematica/
+    - assets/subiecte/informatica/
+    - assets/subiecte/romana/
+    - assets/subiecte/istorie/
+    - assets/subiecte/biologie/
+    - assets/subiecte/chimie/
+    - assets/subiecte/fizica/
+    - assets/subiecte/geografie/
+    - assets/subiecte/logica/
+    - assets/subiecte/psihologie/
+    - assets/subiecte/economie/
+    - assets/subiecte/sociologie/
+    - assets/subiecte/filosofie/
