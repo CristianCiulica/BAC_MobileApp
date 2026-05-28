@@ -1,8 +1,10 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
+import '../../../src/design/ui.dart';
 import '../../../src/models/app_data.dart';
-import '../../../src/services/auth_service.dart';
 import '../../../src/services/app_settings.dart';
+import '../../../src/services/auth_service.dart';
 import '../../../src/services/firestore_service.dart';
 import '../../../src/services/notification_service.dart';
 import '../../study_planner/services/study_planner_service.dart';
@@ -56,51 +58,92 @@ class _SetExamDateScreenState extends State<SetExamDateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return CupertinoPageScaffold(
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final maxDate = DateTime(now.year + 2, 12, 31);
+    // Guarantee the picker's initial value stays within [min, max]; otherwise
+    // CupertinoDatePicker throws an assertion.
+    final initialDate = _selectedDate.isBefore(today)
+        ? today
+        : (_selectedDate.isAfter(maxDate) ? maxDate : _selectedDate);
+    final daysLeft = _selectedDate.difference(today).inDays;
+
+    return Scaffold(
       backgroundColor: AppColors.background,
-      navigationBar: CupertinoNavigationBar(
-        middle: const Text('Setează data Bacului'),
-        previousPageTitle: 'Înapoi',
-        trailing: CupertinoButton(
-          padding: EdgeInsets.zero,
-          onPressed: _saving ? null : _save,
-          child: _saving
-              ? const CupertinoActivityIndicator()
-              : const Text('Salvează'),
-        ),
-      ),
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 18),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                'Alege data oficială a examenului pentru un plan personalizat.',
-                style: AppText.subheadStyle,
+      body: CustomScrollView(
+        slivers: [
+          glassSliverBar(context, title: 'Data examenului', titleSize: 27),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.page,
+                AppSpacing.x5,
+                AppSpacing.page,
+                AppSpacing.x10,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Alege data oficială a examenului pentru countdown și un plan de studiu personalizat.',
+                    style: AppText.subheadStyle,
+                  ),
+                  const SizedBox(height: AppSpacing.x4),
+                  FloatingCard(
+                    padding: EdgeInsets.zero,
+                    child: SizedBox(
+                      height: 216,
+                      child: CupertinoDatePicker(
+                        mode: CupertinoDatePickerMode.date,
+                        initialDateTime: initialDate,
+                        minimumDate: today,
+                        maximumDate: maxDate,
+                        onDateTimeChanged: (value) {
+                          setState(() {
+                            _selectedDate = DateTime(
+                              value.year,
+                              value.month,
+                              value.day,
+                            );
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.x4),
+                  FloatingCard(
+                    padding: const EdgeInsets.all(AppSpacing.x4),
+                    radius: AppRadius.md,
+                    child: Row(
+                      children: [
+                        const TintedIcon(
+                          icon: CupertinoIcons.timer,
+                          color: AppColors.indigo,
+                        ),
+                        const SizedBox(width: AppSpacing.x3),
+                        Expanded(
+                          child: Text(
+                            daysLeft <= 0
+                                ? 'Examenul este astăzi sau a trecut.'
+                                : '$daysLeft zile până la examen',
+                            style: AppText.headlineStyle,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.x6),
+                  AppButton(
+                    label: 'Salvează data',
+                    icon: CupertinoIcons.checkmark_alt,
+                    loading: _saving,
+                    onPressed: _saving ? null : _save,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 18),
-            Expanded(
-              child: CupertinoDatePicker(
-                mode: CupertinoDatePickerMode.date,
-                initialDateTime: _selectedDate,
-                minimumDate: DateTime.now().subtract(const Duration(days: 1)),
-                maximumDate: DateTime(DateTime.now().year + 2, 12, 31),
-                onDateTimeChanged: (value) {
-                  setState(() {
-                    _selectedDate = DateTime(
-                      value.year,
-                      value.month,
-                      value.day,
-                    );
-                  });
-                },
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

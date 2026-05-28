@@ -1,7 +1,7 @@
 name: bac_app
-description: "A new Flutter project."
+description: "BacPro — pregătire pentru Bacalaureat: subiecte oficiale, timer de examen, planner de studiu și progres."
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: ^3.12.0

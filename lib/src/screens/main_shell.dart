@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:pdfrx/pdfrx.dart';
 
+import '../../features/countdown/screens/set_exam_date_screen.dart';
 import '../../features/countdown/widgets/countdown_card.dart';
+import '../../features/gamification/services/gamification_service.dart';
 import '../models/app_data.dart';
 import '../navigation.dart';
 import '../services/app_settings.dart';
@@ -15,6 +18,9 @@ import '../services/local_exam_pdf_service.dart';
 import '../widgets/common.dart';
 import 'account_screens.dart';
 import 'login_screen.dart';
+
+/// Bottom inset that keeps scrollable content clear of the floating tab bar.
+const double kTabBarClearance = 118;
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -26,7 +32,6 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   StreamSubscription<UserProfileData>? _profileSubscription;
-  bool _themeHydratedFromProfile = false;
   int _selectedTabIndex = 0;
   bool _isMenuOpen = false;
 
@@ -39,10 +44,6 @@ class _MainShellState extends State<MainShell> {
       _profileSubscription = FirestoreService.watchProfile(user).listen((
         profile,
       ) {
-        if (!_themeHydratedFromProfile) {
-          _themeHydratedFromProfile = true;
-          AppSettings.setDarkMode(profile.darkMode);
-        }
         AppSettings.setHaptics(profile.haptics);
       });
     }
@@ -65,46 +66,22 @@ class _MainShellState extends State<MainShell> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: AppColors.background,
+      extendBody: true,
       body: Stack(
         children: [
           IndexedStack(index: _selectedTabIndex, children: tabs),
           if (_selectedTabIndex == 0) _buildSideMenuOverlay(context),
         ],
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          border: Border(
-            top: BorderSide(color: AppColors.separator, width: 0.4),
-          ),
-        ),
-        child: CupertinoTabBar(
-          currentIndex: _selectedTabIndex,
-          activeColor: AppColors.blue,
-          inactiveColor: AppColors.secondLabel,
-          border: null,
-          backgroundColor: AppColors.surface.withAlpha(252),
-          onTap: (index) {
-            AppHaptics.selection();
-            setState(() {
-              _selectedTabIndex = index;
-              _isMenuOpen = false;
-            });
-          },
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.house_fill),
-              label: 'Dashboard',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.shuffle),
-              label: 'Subiect Random',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(CupertinoIcons.person_crop_circle),
-              label: 'Profil',
-            ),
-          ],
-        ),
+      bottomNavigationBar: _GlassTabBar(
+        currentIndex: _selectedTabIndex,
+        onTap: (index) {
+          AppHaptics.selection();
+          setState(() {
+            _selectedTabIndex = index;
+            _isMenuOpen = false;
+          });
+        },
       ),
     );
   }
@@ -120,27 +97,27 @@ class _MainShellState extends State<MainShell> {
   }
 
   Widget _buildSideMenuOverlay(BuildContext context) {
-    final menuWidth = MediaQuery.sizeOf(context).width * 0.82;
+    final menuWidth = MediaQuery.sizeOf(context).width * 0.84;
 
     return Stack(
       children: [
         IgnorePointer(
           ignoring: !_isMenuOpen,
           child: AnimatedOpacity(
-            duration: const Duration(milliseconds: 170),
-            curve: Curves.easeOut,
+            duration: AppDurations.base,
+            curve: AppDurations.ease,
             opacity: _isMenuOpen ? 1 : 0,
             child: GestureDetector(
               onTap: _closeMenu,
-              child: Container(color: Colors.black.withAlpha(70)),
+              child: Container(color: Colors.black.withValues(alpha: 0.32)),
             ),
           ),
         ),
         Align(
           alignment: Alignment.centerLeft,
           child: AnimatedSlide(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
+            duration: AppDurations.base,
+            curve: AppDurations.ease,
             offset: _isMenuOpen ? Offset.zero : const Offset(-1.05, 0),
             child: SizedBox(
               width: menuWidth,
@@ -149,6 +126,113 @@ class _MainShellState extends State<MainShell> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Floating Liquid Glass tab bar.
+class _GlassTabBar extends StatelessWidget {
+  final int currentIndex;
+  final ValueChanged<int> onTap;
+
+  const _GlassTabBar({required this.currentIndex, required this.onTap});
+
+  static const _items = [
+    (CupertinoIcons.house_fill, CupertinoIcons.house, 'Acasă'),
+    (CupertinoIcons.shuffle, CupertinoIcons.shuffle, 'Random'),
+    (
+      CupertinoIcons.person_crop_circle_fill,
+      CupertinoIcons.person_crop_circle,
+      'Profil',
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    // Sit the floating bar low, dipping slightly into the home-indicator zone
+    // so it reads as anchored to the bottom edge on both themes.
+    final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
+    final bottomGap = bottomInset > 0 ? (bottomInset - 16).clamp(4.0, 24.0) : 8.0;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(AppSpacing.x6, 0, AppSpacing.x6, bottomGap),
+      child: GlassPanel(
+        radius: AppRadius.xl,
+        shadows: AppShadows.floating,
+        showSheen: false,
+        color: AppColors.surface.withValues(
+          alpha: AppColors.isDark ? 0.55 : 0.75,
+        ),
+        padding: const EdgeInsets.all(6),
+        child: Row(
+          children: [
+            for (int i = 0; i < _items.length; i++)
+              Expanded(
+                child: _TabItem(
+                  activeIcon: _items[i].$1,
+                  icon: _items[i].$2,
+                  label: _items[i].$3,
+                  selected: currentIndex == i,
+                  onTap: () => onTap(i),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TabItem extends StatelessWidget {
+  final IconData icon;
+  final IconData activeIcon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _TabItem({
+    required this.icon,
+    required this.activeIcon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: AppDurations.base,
+        curve: AppDurations.ease,
+        padding: const EdgeInsets.symmetric(vertical: 9),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.tint(AppColors.blue) : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              selected ? activeIcon : icon,
+              size: 23,
+              color: selected ? AppColors.blue : AppColors.secondLabel,
+            ),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: '.SF Pro Text',
+                fontSize: 11,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                color: selected ? AppColors.blue : AppColors.secondLabel,
+                letterSpacing: 0,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -163,258 +247,250 @@ class AppDrawer extends StatelessWidget {
     final userName = AuthService.displayName;
     final user = AuthService.currentUser;
 
-    return Material(
-      color: AppColors.surface,
-      child: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
-              child: Row(
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppColors.blue, AppColors.indigo],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Icon(
-                      CupertinoIcons.person_fill,
-                      color: Colors.white,
-                      size: 32,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          userName,
-                          style: TextStyle(
-                            fontFamily: '.SF Pro Display',
-                            fontSize: 19,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.label,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        if (user == null)
-                          Text(
-                            'Profil nesincronizat',
-                            style: AppText.subheadStyle,
-                          )
-                        else
-                          StreamBuilder<UserProfileData>(
-                            stream: FirestoreService.watchProfile(user),
-                            builder: (context, snapshot) {
-                              final profile = snapshot.data;
-                              return Text(
-                                profile == null
-                                    ? (user.email ?? 'Profil Bac Pro')
-                                    : '${profile.school} · ${profile.selectedProfile}',
-                                style: AppText.subheadStyle,
-                                overflow: TextOverflow.ellipsis,
-                              );
-                            },
-                          ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.green.withAlpha(38),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            'Activ',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.green,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(12),
+    return ClipRRect(
+      borderRadius: const BorderRadius.only(
+        topRight: Radius.circular(AppRadius.xl),
+        bottomRight: Radius.circular(AppRadius.xl),
+      ),
+      child: Material(
+        color: AppColors.surface,
+        child: SafeArea(
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.x5,
+                  AppSpacing.x6,
+                  AppSpacing.x5,
+                  AppSpacing.x5,
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    if (user == null) ...[
-                      const Expanded(
-                        child: _StatItem(value: '0', label: 'Subiecte'),
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: AppColors.tint(AppColors.blue),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                       ),
-                      const _VerticalDivider(),
-                      const Expanded(
-                        child: _StatItem(value: '0h', label: 'Timp total'),
+                      child: const Icon(
+                        CupertinoIcons.person_fill,
+                        color: AppColors.blue,
+                        size: 30,
                       ),
-                      const _VerticalDivider(),
-                      const Expanded(
-                        child: _StatItem(value: '-', label: 'Medie'),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            userName,
+                            style: AppText.titleStyle.copyWith(fontSize: 19),
+                          ),
+                          const SizedBox(height: 3),
+                          if (user == null)
+                            Text(
+                              'Profil nesincronizat',
+                              style: AppText.subheadStyle,
+                            )
+                          else
+                            StreamBuilder<UserProfileData>(
+                              stream: FirestoreService.watchProfile(user),
+                              builder: (context, snapshot) {
+                                final profile = snapshot.data;
+                                return Text(
+                                  profile == null
+                                      ? (user.email ?? 'Profil BacPro')
+                                      : '${profile.school} · ${profile.selectedProfile}',
+                                  style: AppText.subheadStyle,
+                                  overflow: TextOverflow.ellipsis,
+                                );
+                              },
+                            ),
+                          const SizedBox(height: 6),
+                          const PillBadge('Activ', color: AppColors.green),
+                        ],
                       ),
-                    ] else
-                      Expanded(
-                        child: StreamBuilder<List<StudySession>>(
-                          stream: FirestoreService.watchSessions(user),
-                          builder: (context, snapshot) {
-                            final progress = UserProgress.fromSessions(
-                              snapshot.data ?? const [],
-                            );
-                            return Row(
-                              children: [
-                                Expanded(
-                                  child: _StatItem(
-                                    value: '${progress.solvedCount}',
-                                    label: 'Subiecte',
-                                  ),
-                                ),
-                                const _VerticalDivider(),
-                                Expanded(
-                                  child: _StatItem(
-                                    value: _formatHours(
-                                      progress.totalStudySeconds,
-                                    ),
-                                    label: 'Timp total',
-                                  ),
-                                ),
-                                const _VerticalDivider(),
-                                Expanded(
-                                  child: _StatItem(
-                                    value: progress.averageGrade == 0
-                                        ? '-'
-                                        : progress.averageGrade.toStringAsFixed(
-                                            1,
-                                          ),
-                                    label: 'Medie',
-                                  ),
-                                ),
-                              ],
-                            );
-                          },
-                        ),
-                      ),
+                    ),
                   ],
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Divider(height: 1, color: AppColors.separator),
-            const SizedBox(height: 8),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                children: [
-                  _DrawerSection(
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.x4,
+                  0,
+                  AppSpacing.x4,
+                  AppSpacing.x2,
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.x3,
+                    vertical: AppSpacing.x4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.fill,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _DrawerItem(
-                        icon: CupertinoIcons.person_crop_circle,
-                        label: 'Profil utilizator',
-                        color: AppColors.blue,
-                        onTap: () => _push(context, const UserProfileScreen()),
-                      ),
-                      _DrawerItem(
-                        icon: CupertinoIcons.chart_bar_square_fill,
-                        label: 'Progres & Statistici',
-                        color: AppColors.indigo,
-                        onTap: () => _push(context, const ProgressScreen()),
-                      ),
-                      _DrawerItem(
-                        icon: CupertinoIcons.clock_fill,
-                        label: 'Istoric sesiuni',
-                        color: AppColors.teal,
-                        onTap: () => _push(context, const HistoryScreen()),
-                      ),
+                      if (user == null) ...[
+                        const Expanded(
+                          child: _StatItem(value: '0', label: 'Subiecte'),
+                        ),
+                        const _VerticalDivider(),
+                        const Expanded(
+                          child: _StatItem(value: '0h', label: 'Timp total'),
+                        ),
+                        const _VerticalDivider(),
+                        const Expanded(
+                          child: _StatItem(value: '-', label: 'Medie'),
+                        ),
+                      ] else
+                        Expanded(
+                          child: StreamBuilder<List<StudySession>>(
+                            stream: FirestoreService.watchSessions(user),
+                            builder: (context, snapshot) {
+                              final progress = UserProgress.fromSessions(
+                                snapshot.data ?? const [],
+                              );
+                              return Row(
+                                children: [
+                                  Expanded(
+                                    child: _StatItem(
+                                      value: '${progress.solvedCount}',
+                                      label: 'Subiecte',
+                                    ),
+                                  ),
+                                  const _VerticalDivider(),
+                                  Expanded(
+                                    child: _StatItem(
+                                      value: _formatHours(
+                                        progress.totalStudySeconds,
+                                      ),
+                                      label: 'Timp total',
+                                    ),
+                                  ),
+                                  const _VerticalDivider(),
+                                  Expanded(
+                                    child: _StatItem(
+                                      value: progress.averageGrade == 0
+                                          ? '-'
+                                          : progress.averageGrade
+                                                .toStringAsFixed(1),
+                                      label: 'Medie',
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  _DrawerSection(
-                    children: [
-                      _DrawerItem(
-                        icon: CupertinoIcons.bell_fill,
-                        label: 'Notificări',
-                        color: AppColors.red,
-                        onTap: () =>
-                            _push(context, const NotificationsSettingsScreen()),
-                      ),
-                      _DrawerItem(
-                        icon: CupertinoIcons.chat_bubble_2_fill,
-                        label: 'Mesaje dezvoltator',
-                        color: AppColors.purple,
-                        onTap: () =>
-                            _push(context, const DeveloperMessagesScreen()),
-                      ),
-                      _DrawerItem(
-                        icon: CupertinoIcons.gear_solid,
-                        label: 'Setări',
-                        color: AppColors.secondLabel,
-                        onTap: () => _push(context, const SettingsScreen()),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  _DrawerSection(
-                    children: [
-                      _DrawerItem(
-                        icon: CupertinoIcons.star_fill,
-                        label: 'Evaluează aplicația',
-                        color: AppColors.orange,
-                        onTap: () => _push(context, const AppRatingScreen()),
-                      ),
-                      _DrawerItem(
-                        icon: CupertinoIcons.info_circle_fill,
-                        label: 'Despre Bac Pro',
-                        color: AppColors.blue,
-                        onTap: () => _push(context, const AboutScreen()),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  _DrawerSection(
-                    children: [
-                      _DrawerItem(
-                        icon: CupertinoIcons.square_arrow_right,
-                        label: 'Deconectează-te',
-                        color: AppColors.red,
-                        onTap: () async {
-                          onClose?.call();
-                          await AuthService.signOut();
-                          if (!context.mounted) return;
-                          Navigator.of(context).pushAndRemoveUntil(
-                            CupertinoPageRoute(
-                              builder: (_) => const LoginScreen(),
-                            ),
-                            (_) => false,
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: AppSpacing.x2),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.x4,
+                  ),
+                  children: [
+                    _DrawerSection(
+                      children: [
+                        _DrawerItem(
+                          icon: CupertinoIcons.person_crop_circle,
+                          label: 'Profil utilizator',
+                          color: AppColors.blue,
+                          onTap: () => _push(context, const UserProfileScreen()),
+                        ),
+                        _DrawerItem(
+                          icon: CupertinoIcons.chart_bar_square,
+                          label: 'Progres & Statistici',
+                          color: AppColors.indigo,
+                          onTap: () => _push(context, const ProgressScreen()),
+                        ),
+                        _DrawerItem(
+                          icon: CupertinoIcons.clock,
+                          label: 'Istoric sesiuni',
+                          color: AppColors.teal,
+                          onTap: () => _push(context, const HistoryScreen()),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.x3),
+                    _DrawerSection(
+                      children: [
+                        _DrawerItem(
+                          icon: CupertinoIcons.bell,
+                          label: 'Notificări',
+                          color: AppColors.red,
+                          onTap: () => _push(
+                            context,
+                            const NotificationsSettingsScreen(),
+                          ),
+                        ),
+                        _DrawerItem(
+                          icon: CupertinoIcons.chat_bubble_2,
+                          label: 'Mesaje dezvoltator',
+                          color: AppColors.purple,
+                          onTap: () =>
+                              _push(context, const DeveloperMessagesScreen()),
+                        ),
+                        _DrawerItem(
+                          icon: CupertinoIcons.gear,
+                          label: 'Setări',
+                          color: AppColors.secondLabel,
+                          onTap: () => _push(context, const SettingsScreen()),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.x3),
+                    _DrawerSection(
+                      children: [
+                        _DrawerItem(
+                          icon: CupertinoIcons.star,
+                          label: 'Evaluează aplicația',
+                          color: AppColors.orange,
+                          onTap: () => _push(context, const AppRatingScreen()),
+                        ),
+                        _DrawerItem(
+                          icon: CupertinoIcons.info_circle,
+                          label: 'Despre BacPro',
+                          color: AppColors.blue,
+                          onTap: () => _push(context, const AboutScreen()),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.x3),
+                    _DrawerSection(
+                      children: [
+                        _DrawerItem(
+                          icon: CupertinoIcons.square_arrow_right,
+                          label: 'Deconectează-te',
+                          color: AppColors.red,
+                          onTap: () async {
+                            onClose?.call();
+                            await AuthService.signOut();
+                            if (!context.mounted) return;
+                            Navigator.of(context).pushAndRemoveUntil(
+                              CupertinoPageRoute(
+                                builder: (_) => const LoginScreen(),
+                              ),
+                              (_) => false,
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSpacing.x5),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -440,7 +516,7 @@ class _VerticalDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 0.5,
-      height: 40,
+      height: 38,
       margin: const EdgeInsets.symmetric(horizontal: 6),
       color: AppColors.separator,
     );
@@ -458,16 +534,8 @@ class _StatItem extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontFamily: '.SF Pro Display',
-            fontSize: 22,
-            fontWeight: FontWeight.w700,
-            color: AppColors.label,
-          ),
-        ),
-        const SizedBox(height: 3),
+        Text(value, style: AppText.statStyle.copyWith(fontSize: 21)),
+        const SizedBox(height: 2),
         Text(
           label,
           textAlign: TextAlign.center,
@@ -489,22 +557,25 @@ class _DrawerSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.fill,
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
-      child: Column(
-        children: [
-          for (int i = 0; i < children.length; i++) ...[
-            children[i],
-            if (i < children.length - 1)
-              Divider(
-                height: 0,
-                indent: 52,
-                color: AppColors.separator,
-                thickness: 0.5,
-              ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Column(
+          children: [
+            for (int i = 0; i < children.length; i++) ...[
+              children[i],
+              if (i < children.length - 1)
+                Divider(
+                  height: 0.5,
+                  indent: 56,
+                  color: AppColors.separator,
+                  thickness: 0.5,
+                ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -543,16 +614,21 @@ class _DrawerItemState extends State<_DrawerItem> {
       },
       onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 80),
+        duration: AppDurations.fast,
         color: _pressed
-            ? AppColors.separator.withAlpha(128)
+            ? AppColors.separator.withValues(alpha: 0.5)
             : Colors.transparent,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
         child: Row(
           children: [
-            AppIconBadge(icon: widget.icon, color: widget.color, size: 36),
-            const SizedBox(width: 12),
-            Expanded(child: Text(widget.label, style: AppText.bodyStyle)),
+            TintedIcon(icon: widget.icon, color: widget.color, size: 34),
+            const SizedBox(width: AppSpacing.x3),
+            Expanded(
+              child: Text(
+                widget.label,
+                style: AppText.bodyStyle.copyWith(fontWeight: FontWeight.w500),
+              ),
+            ),
             Icon(
               CupertinoIcons.chevron_right,
               color: AppColors.tertiaryLabel,
@@ -653,68 +729,44 @@ class _AppRatingScreenState extends State<AppRatingScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        bottom: false,
-        child: CustomScrollView(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          slivers: [
-            SliverAppBar(
-              pinned: true,
-              expandedHeight: 96,
-              backgroundColor: AppColors.background,
-              surfaceTintColor: Colors.transparent,
-              scrolledUnderElevation: 0.5,
-              shadowColor: AppColors.separator,
-              leading: CupertinoButton(
-                padding: EdgeInsets.zero,
-                onPressed: () => Navigator.pop(context),
-                child: const Icon(CupertinoIcons.back, color: AppColors.blue),
-              ),
-              flexibleSpace: FlexibleSpaceBar(
-                titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
-                title: Text(
-                  'Evaluează aplicația',
-                  style: AppText.largeTitleStyle,
-                ),
-                expandedTitleScale: 1.0,
-                collapseMode: CollapseMode.none,
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.separator),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Cât de utilă este Bac Pro?',
-                            style: AppText.bodyStyle.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: List.generate(5, (index) {
-                              final value = index + 1;
-                              final selected = value <= _rating;
-                              return GestureDetector(
-                                onTap: () {
-                                  AppHaptics.selection();
-                                  setState(() => _rating = value);
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.only(right: 8),
+      body: CustomScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        slivers: [
+          glassSliverBar(context, title: 'Evaluează aplicația', titleSize: 26),
+          SliverToBoxAdapter(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.page,
+                    AppSpacing.x5,
+                    AppSpacing.page,
+                    0,
+                  ),
+                  child: FloatingCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Cât de utilă este BacPro?',
+                          style: AppText.headlineStyle,
+                        ),
+                        const SizedBox(height: AppSpacing.x4),
+                        Row(
+                          children: List.generate(5, (index) {
+                            final value = index + 1;
+                            final selected = value <= _rating;
+                            return GestureDetector(
+                              onTap: () {
+                                AppHaptics.selection();
+                                setState(() => _rating = value);
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.only(right: 10),
+                                child: AnimatedScale(
+                                  duration: AppDurations.base,
+                                  curve: AppDurations.spring,
+                                  scale: selected ? 1.0 : 0.88,
                                   child: Icon(
                                     selected
                                         ? CupertinoIcons.star_fill
@@ -722,58 +774,33 @@ class _AppRatingScreenState extends State<AppRatingScreen> {
                                     color: selected
                                         ? AppColors.orange
                                         : AppColors.tertiaryLabel,
-                                    size: 24,
+                                    size: 30,
                                   ),
                                 ),
-                              );
-                            }),
-                          ),
-                          const SizedBox(height: 14),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: AppColors.background,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            child: TextField(
-                              controller: _notesController,
-                              maxLines: 4,
-                              scrollPadding: const EdgeInsets.only(bottom: 140),
-                              style: AppText.bodyStyle,
-                              decoration: InputDecoration(
-                                border: InputBorder.none,
-                                hintText:
-                                    'Ce ți-ar plăcea să îmbunătățim în continuare?',
-                                hintStyle: AppText.subheadStyle,
                               ),
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          SizedBox(
-                            width: double.infinity,
-                            child: CupertinoButton(
-                              color: AppColors.blue,
-                              borderRadius: BorderRadius.circular(10),
-                              onPressed: _submitFeedback,
-                              child: const Text(
-                                'Trimite feedback',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                            );
+                          }),
+                        ),
+                        const SizedBox(height: AppSpacing.x5),
+                        AppInput(
+                          controller: _notesController,
+                          hint: 'Ce ți-ar plăcea să îmbunătățim în continuare?',
+                          maxLines: 4,
+                        ),
+                        const SizedBox(height: AppSpacing.x4),
+                        AppButton(
+                          label: 'Trimite feedback',
+                          onPressed: _submitFeedback,
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 40),
-                ],
-              ),
+                ),
+                const SizedBox(height: AppSpacing.x10),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -861,182 +888,124 @@ class _DeveloperMessagesScreenState extends State<DeveloperMessagesScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        bottom: false,
-        child: CustomScrollView(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          slivers: [
-            SliverAppBar(
-              pinned: true,
-              expandedHeight: 96,
-              backgroundColor: AppColors.background,
-              surfaceTintColor: Colors.transparent,
-              scrolledUnderElevation: 0.5,
-              shadowColor: AppColors.separator,
-              leading: CupertinoButton(
-                padding: EdgeInsets.zero,
-                onPressed: () => Navigator.pop(context),
-                child: const Icon(CupertinoIcons.back, color: AppColors.blue),
-              ),
-              flexibleSpace: FlexibleSpaceBar(
-                titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
-                title: Text(
-                  'Mesaje dezvoltator',
-                  style: AppText.largeTitleStyle,
-                ),
-                expandedTitleScale: 1.0,
-                collapseMode: CollapseMode.none,
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: Column(
-                children: [
-                  const SizedBox(height: 10),
-                  IOSSection(
-                    header: 'Trimite sugestie',
-                    footer:
-                        'Mesajele apar în documentul tău din Firebase la câmpul developerMessages.',
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Scrie ce ai vrea să îmbunătățim în Bac Pro.',
-                              style: AppText.subheadStyle,
-                            ),
-                            const SizedBox(height: 10),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: AppColors.background,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                              ),
-                              child: TextField(
-                                controller: _messageController,
-                                maxLines: 4,
-                                scrollPadding: const EdgeInsets.only(
-                                  bottom: 140,
-                                ),
-                                style: AppText.bodyStyle,
-                                decoration: InputDecoration(
-                                  border: InputBorder.none,
-                                  hintText:
-                                      'Ex: aș vrea filtre pe ani, profil...',
-                                  hintStyle: AppText.subheadStyle,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              child: CupertinoButton(
-                                color: AppColors.blue,
-                                borderRadius: BorderRadius.circular(10),
-                                onPressed: _sending ? null : _sendMessage,
-                                child: _sending
-                                    ? const CupertinoActivityIndicator(
-                                        color: Colors.white,
-                                      )
-                                    : const Text(
-                                        'Trimite mesaj',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+      body: CustomScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        slivers: [
+          glassSliverBar(context, title: 'Mesaje dezvoltator', titleSize: 26),
+          SliverToBoxAdapter(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.page,
+                    AppSpacing.x5,
+                    AppSpacing.page,
+                    0,
                   ),
-                  IOSSection(
-                    header: 'Istoric mesaje',
-                    children: [
-                      if (user == null)
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Text(
+                  child: FloatingCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Trimite o sugestie', style: AppText.headlineStyle),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Scrie ce ai vrea să îmbunătățim în BacPro.',
+                          style: AppText.subheadStyle,
+                        ),
+                        const SizedBox(height: AppSpacing.x4),
+                        AppInput(
+                          controller: _messageController,
+                          hint: 'Ex: aș vrea filtre pe ani, profil...',
+                          maxLines: 4,
+                        ),
+                        const SizedBox(height: AppSpacing.x4),
+                        AppButton(
+                          label: 'Trimite mesaj',
+                          loading: _sending,
+                          onPressed: _sending ? null : _sendMessage,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                CardGroup(
+                  header: 'Istoric mesaje',
+                  children: [
+                    if (user == null)
+                      const EmptyState(
+                        icon: CupertinoIcons.chat_bubble_2,
+                        title: 'Neconectat',
+                        message:
                             'Conectează-te pentru a vedea istoricul de mesaje.',
-                            style: AppText.subheadStyle,
-                          ),
-                        )
-                      else
-                        StreamBuilder<List<DeveloperMessage>>(
-                          stream: FirestoreService.watchDeveloperMessages(user),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const Padding(
-                                padding: EdgeInsets.all(18),
-                                child: Center(
-                                  child: CupertinoActivityIndicator(),
-                                ),
-                              );
-                            }
-
-                            final messages = snapshot.data ?? const [];
-                            if (messages.isEmpty) {
-                              return Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Text(
-                                  'Încă nu ai trimis mesaje.',
-                                  style: AppText.subheadStyle,
-                                ),
-                              );
-                            }
-
-                            return Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                14,
-                                12,
-                                14,
-                                12,
-                              ),
-                              child: Column(
-                                children: messages.map((message) {
-                                  return Container(
-                                    width: double.infinity,
-                                    margin: const EdgeInsets.only(bottom: 10),
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.background,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          message.text,
-                                          style: AppText.bodyStyle,
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          _formatMessageTime(message.createdAt),
-                                          style: AppText.captionStyle,
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
+                      )
+                    else
+                      StreamBuilder<List<DeveloperMessage>>(
+                        stream: FirestoreService.watchDeveloperMessages(user),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Padding(
+                              padding: EdgeInsets.all(AppSpacing.x5),
+                              child: Center(
+                                child: CupertinoActivityIndicator(),
                               ),
                             );
-                          },
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 28),
-                ],
-              ),
+                          }
+
+                          final messages = snapshot.data ?? const [];
+                          if (messages.isEmpty) {
+                            return const EmptyState(
+                              icon: CupertinoIcons.paperplane,
+                              title: 'Niciun mesaj încă',
+                              message:
+                                  'Sugestiile trimise vor apărea aici.',
+                            );
+                          }
+
+                          return Padding(
+                            padding: const EdgeInsets.all(AppSpacing.x4),
+                            child: Column(
+                              children: messages.map((message) {
+                                return Container(
+                                  width: double.infinity,
+                                  margin: const EdgeInsets.only(
+                                    bottom: AppSpacing.x3,
+                                  ),
+                                  padding: const EdgeInsets.all(AppSpacing.x4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.fill,
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.sm,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        message.text,
+                                        style: AppText.bodyStyle,
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        _formatMessageTime(message.createdAt),
+                                        style: AppText.captionStyle,
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          );
+                        },
+                      ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.x10),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1051,35 +1020,31 @@ class ProfileSelectionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return CustomScrollView(
       slivers: [
-        SliverAppBar(
-          pinned: true,
-          toolbarHeight: 64,
-          backgroundColor: AppColors.background,
-          surfaceTintColor: Colors.transparent,
-          scrolledUnderElevation: 0.5,
-          shadowColor: AppColors.separator,
-          leadingWidth: 54,
-          leading: IconButton(
-            icon: const Icon(
-              CupertinoIcons.line_horizontal_3,
-              color: AppColors.blue,
-            ),
-            onPressed: () {
-              AppHaptics.medium();
-              onMenuTap();
-            },
-          ),
-          titleSpacing: 0,
-          title: Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Text(
-              'Bac Pro',
-              style: TextStyle(
-                fontFamily: '.SF Pro Display',
-                fontSize: 32,
-                fontWeight: FontWeight.w700,
-                color: AppColors.label,
-                letterSpacing: -0.4,
+        glassSliverBar(
+          context,
+          title: 'BacPro',
+          showBack: false,
+          leading: Center(
+            child: Pressable(
+              onTap: () {
+                AppHaptics.medium();
+                onMenuTap();
+              },
+              child: Container(
+                width: 38,
+                height: 38,
+                margin: const EdgeInsets.only(left: AppSpacing.x3),
+                decoration: BoxDecoration(
+                  color: AppColors.surface.withValues(alpha: 0.85),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.separator, width: 0.5),
+                  boxShadow: AppShadows.soft,
+                ),
+                child: Icon(
+                  CupertinoIcons.line_horizontal_3,
+                  color: AppColors.blue,
+                  size: 19,
+                ),
               ),
             ),
           ),
@@ -1088,39 +1053,87 @@ class ProfileSelectionScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 8),
-              const _HomeOverviewPanel(),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.x5),
               const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16),
-                child: CountdownCard(),
+                padding: EdgeInsets.symmetric(horizontal: AppSpacing.page),
+                child: _HomeOverviewPanel(),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.x4),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.page,
+                ),
+                child: Pressable(
+                  onTap: () => Navigator.push(
+                    context,
+                    cupertinoRoute(const SetExamDateScreen()),
+                  ),
+                  child: const CountdownCard(),
+                ),
+              ),
               const _NextLevelSection(),
-              IOSSection(
-                header: 'Profilul tău',
-                children: [
-                  for (final profile in appProfiles)
-                    IOSCell(
-                      leading: AppIconBadge(
-                        icon: profile.icon,
-                        color: profile.accentColor,
-                      ),
-                      title: profile.name,
-                      subtitle: profile.description,
-                      trailing: CountBadge(profile.subjects.length),
-                      onTap: () => Navigator.push(
-                        context,
-                        cupertinoRoute(SubjectListScreen(profile: profile)),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 40),
+              const _SelectedProfileSubjects(),
+              const SizedBox(height: kTabBarClearance),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Home section listing only the subjects that belong to the user's selected
+/// BAC profile — nothing outside the programme shows up here.
+class _SelectedProfileSubjects extends StatelessWidget {
+  const _SelectedProfileSubjects();
+
+  @override
+  Widget build(BuildContext context) {
+    final user = AuthService.currentUser;
+    if (user == null) return const SizedBox.shrink();
+
+    return StreamBuilder<UserProfileData>(
+      stream: FirestoreService.watchProfile(user),
+      builder: (context, snapshot) {
+        final profile = profileByName(snapshot.data?.selectedProfile);
+        return CardGroup(
+          header: 'Materiile tale · ${profile.name}',
+          footer:
+              'Vezi doar materiile din profilul tău. Îl poți schimba oricând.',
+          children: [
+            for (final subject in profile.subjects)
+              CardRow(
+                leading: TintedIcon(
+                  icon: subject.icon,
+                  color: subject.accentColor,
+                ),
+                title: subject.title,
+                onTap: () => Navigator.push(
+                  context,
+                  cupertinoRoute(
+                    YearSelectionScreen(
+                      profileName: profile.name,
+                      subjectName: subject.title,
+                      subjectIcon: subject.icon,
+                      subjectColor: subject.accentColor,
+                    ),
+                  ),
+                ),
+              ),
+            CardRow(
+              leading: TintedIcon(
+                icon: CupertinoIcons.arrow_2_squarepath,
+                color: AppColors.secondLabel,
+              ),
+              title: 'Schimbă profilul',
+              onTap: () => Navigator.push(
+                context,
+                cupertinoRoute(const UserProfileScreen()),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -1135,6 +1148,7 @@ class RandomSubjectScreen extends StatefulWidget {
 class _RandomSubjectScreenState extends State<RandomSubjectScreen> {
   final Random _random = Random();
   _RandomSubjectPick? _pick;
+  Profile _profile = appProfiles.first;
 
   @override
   void initState() {
@@ -1142,19 +1156,33 @@ class _RandomSubjectScreenState extends State<RandomSubjectScreen> {
     _generateRandomPick();
   }
 
+  /// Keeps the random pool locked to the user's chosen profile so only
+  /// subjects from their programme can appear.
+  void _syncProfile(String? selectedProfileName) {
+    final resolved = profileByName(selectedProfileName);
+    if (resolved.name == _profile.name) return;
+    _profile = resolved;
+    // Re-roll within the new profile after the current frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _generateRandomPick();
+    });
+  }
+
   void _generateRandomPick() {
-    if (appProfiles.isEmpty || examYears.isEmpty || examSessions.isEmpty) {
+    if (_profile.subjects.isEmpty ||
+        examYears.isEmpty ||
+        examSessions.isEmpty) {
       return;
     }
 
-    final profile = appProfiles[_random.nextInt(appProfiles.length)];
-    final subject = profile.subjects[_random.nextInt(profile.subjects.length)];
+    final subject =
+        _profile.subjects[_random.nextInt(_profile.subjects.length)];
     final year = examYears[_random.nextInt(examYears.length)];
     final session = examSessions[_random.nextInt(examSessions.length)];
 
     setState(() {
       _pick = _RandomSubjectPick(
-        profileName: profile.name,
+        profileName: _profile.name,
         subjectName: subject.title,
         year: year,
         sessionName: session.name,
@@ -1167,55 +1195,50 @@ class _RandomSubjectScreenState extends State<RandomSubjectScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = AuthService.currentUser;
+    if (user != null) {
+      return StreamBuilder<UserProfileData>(
+        stream: FirestoreService.watchProfile(user),
+        builder: (context, snapshot) {
+          _syncProfile(snapshot.data?.selectedProfile);
+          return _buildContent(context);
+        },
+      );
+    }
+    return _buildContent(context);
+  }
+
+  Widget _buildContent(BuildContext context) {
     final pick = _pick;
 
     return CustomScrollView(
       slivers: [
-        SliverAppBar(
-          pinned: true,
-          toolbarHeight: 64,
-          backgroundColor: AppColors.background,
-          surfaceTintColor: Colors.transparent,
-          scrolledUnderElevation: 0.5,
-          shadowColor: AppColors.separator,
-          titleSpacing: 16,
-          title: Text(
-            'Subiect Random',
-            style: TextStyle(
-              fontFamily: '.SF Pro Display',
-              fontSize: 30,
-              fontWeight: FontWeight.w700,
-              color: AppColors.label,
-              letterSpacing: -0.4,
-            ),
-          ),
-        ),
+        glassSliverBar(context, title: 'Subiect Random', showBack: false),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.page,
+              AppSpacing.x5,
+              AppSpacing.page,
+              AppSpacing.x5,
+            ),
             child: Column(
               children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.separator),
-                  ),
+                FloatingCard(
+                  radius: AppRadius.xl,
                   child: pick == null
-                      ? const CupertinoActivityIndicator()
+                      ? const Center(child: CupertinoActivityIndicator())
                       : Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                AppIconBadge(
+                                TintedIcon(
                                   icon: pick.subjectIcon,
                                   color: pick.subjectColor,
-                                  size: 48,
+                                  size: 54,
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: AppSpacing.x4),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
@@ -1225,7 +1248,7 @@ class _RandomSubjectScreenState extends State<RandomSubjectScreen> {
                                         pick.subjectName,
                                         style: AppText.titleStyle,
                                       ),
-                                      const SizedBox(height: 2),
+                                      const SizedBox(height: 3),
                                       Text(
                                         '${pick.profileName} · ${pick.year}',
                                         style: AppText.subheadStyle,
@@ -1235,80 +1258,47 @@ class _RandomSubjectScreenState extends State<RandomSubjectScreen> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 14),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: pick.sessionColor.withAlpha(36),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                pick.sessionName,
-                                style: TextStyle(
-                                  color: pick.sessionColor,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
+                            const SizedBox(height: AppSpacing.x4),
+                            PillBadge(
+                              pick.sessionName,
+                              color: pick.sessionColor,
                             ),
                           ],
                         ),
                 ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: CupertinoButton(
-                    color: AppColors.blue,
-                    borderRadius: BorderRadius.circular(12),
-                    onPressed: () {
-                      AppHaptics.selection();
-                      _generateRandomPick();
-                    },
-                    child: const Text(
-                      'Generează alt subiect',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+                const SizedBox(height: AppSpacing.x5),
+                AppButton(
+                  label: 'Generează alt subiect',
+                  icon: CupertinoIcons.shuffle,
+                  style: AppButtonStyle.secondary,
+                  onPressed: () {
+                    AppHaptics.selection();
+                    _generateRandomPick();
+                  },
                 ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: CupertinoButton(
-                    color: AppColors.indigo,
-                    borderRadius: BorderRadius.circular(12),
-                    onPressed: pick == null
-                        ? null
-                        : () {
-                            AppHaptics.medium();
-                            Navigator.push(
-                              context,
-                              cupertinoRoute(
-                                SubjectDetailScreen(
-                                  profileName: pick.profileName,
-                                  subjectName: pick.subjectName,
-                                  year: pick.year,
-                                  sessionName: pick.sessionName,
-                                  subjectIcon: pick.subjectIcon,
-                                  subjectColor: pick.subjectColor,
-                                  sessionColor: pick.sessionColor,
-                                ),
+                const SizedBox(height: AppSpacing.x3),
+                AppButton(
+                  label: 'Începe subiectul',
+                  icon: CupertinoIcons.play_fill,
+                  onPressed: pick == null
+                      ? null
+                      : () {
+                          AppHaptics.medium();
+                          Navigator.push(
+                            context,
+                            cupertinoRoute(
+                              SubjectDetailScreen(
+                                profileName: pick.profileName,
+                                subjectName: pick.subjectName,
+                                year: pick.year,
+                                sessionName: pick.sessionName,
+                                subjectIcon: pick.subjectIcon,
+                                subjectColor: pick.subjectColor,
+                                sessionColor: pick.sessionColor,
                               ),
-                            );
-                          },
-                    child: const Text(
-                      'Începe subiectul',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
+                            ),
+                          );
+                        },
                 ),
               ],
             ),
@@ -1328,50 +1318,30 @@ class ProfileTabScreen extends StatelessWidget {
 
     return CustomScrollView(
       slivers: [
-        SliverAppBar(
-          pinned: true,
-          toolbarHeight: 64,
-          backgroundColor: AppColors.background,
-          surfaceTintColor: Colors.transparent,
-          scrolledUnderElevation: 0.5,
-          shadowColor: AppColors.separator,
-          titleSpacing: 16,
-          title: Text(
-            'Profil',
-            style: TextStyle(
-              fontFamily: '.SF Pro Display',
-              fontSize: 30,
-              fontWeight: FontWeight.w700,
-              color: AppColors.label,
-              letterSpacing: -0.4,
-            ),
-          ),
-        ),
+        glassSliverBar(context, title: 'Profil', showBack: false),
         SliverToBoxAdapter(
           child: Column(
             children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.separator),
-                  ),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.page,
+                  AppSpacing.x5,
+                  AppSpacing.page,
+                  0,
+                ),
+                child: FloatingCard(
                   child: Row(
                     children: [
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                         child: Image.asset(
                           'assets/images/login_hero.png',
-                          width: 52,
-                          height: 52,
+                          width: 54,
+                          height: 54,
                           fit: BoxFit.cover,
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: AppSpacing.x4),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1382,7 +1352,7 @@ class ProfileTabScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              user?.email ?? 'Cont Bac Pro',
+                              user?.email ?? 'Cont BacPro',
                               style: AppText.subheadStyle,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -1393,11 +1363,11 @@ class ProfileTabScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              IOSSection(
+              CardGroup(
                 header: 'Cont',
                 children: [
-                  IOSCell(
-                    leading: const AppIconBadge(
+                  CardRow(
+                    leading: const TintedIcon(
                       icon: CupertinoIcons.person_crop_circle,
                       color: AppColors.blue,
                     ),
@@ -1407,9 +1377,9 @@ class ProfileTabScreen extends StatelessWidget {
                       cupertinoRoute(const UserProfileScreen()),
                     ),
                   ),
-                  IOSCell(
-                    leading: const AppIconBadge(
-                      icon: CupertinoIcons.gear_alt_fill,
+                  CardRow(
+                    leading: const TintedIcon(
+                      icon: CupertinoIcons.gear,
                       color: AppColors.indigo,
                     ),
                     title: 'Setări',
@@ -1418,19 +1388,19 @@ class ProfileTabScreen extends StatelessWidget {
                       cupertinoRoute(const SettingsScreen()),
                     ),
                   ),
-                  IOSCell(
-                    leading: const AppIconBadge(
-                      icon: CupertinoIcons.info_circle_fill,
+                  CardRow(
+                    leading: const TintedIcon(
+                      icon: CupertinoIcons.info_circle,
                       color: AppColors.teal,
                     ),
-                    title: 'Despre Bac Pro',
+                    title: 'Despre BacPro',
                     onTap: () => Navigator.push(
                       context,
                       cupertinoRoute(const AboutScreen()),
                     ),
                   ),
-                  IOSCell(
-                    leading: const AppIconBadge(
+                  CardRow(
+                    leading: const TintedIcon(
                       icon: CupertinoIcons.square_arrow_right,
                       color: AppColors.red,
                     ),
@@ -1446,7 +1416,7 @@ class ProfileTabScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: kTabBarClearance),
             ],
           ),
         ),
@@ -1475,6 +1445,7 @@ class _RandomSubjectPick {
   });
 }
 
+/// Dashboard overview — quiet white card with a greeting and tinted metrics.
 class _HomeOverviewPanel extends StatelessWidget {
   const _HomeOverviewPanel();
 
@@ -1486,85 +1457,80 @@ class _HomeOverviewPanel extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final firstName = AuthService.displayName.split(' ').first;
+
     return StreamBuilder<List<StudySession>>(
       stream: FirestoreService.watchSessions(user),
       builder: (context, snapshot) {
         final sessions = snapshot.data ?? const <StudySession>[];
         final progress = UserProgress.fromSessions(sessions);
         final latestGrade = sessions.isEmpty
-            ? '-'
+            ? '–'
             : sessions.first.estimatedGrade.toStringAsFixed(1);
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF0F1C3F), Color(0xFF1E3C79)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+        // Liquid Glass hero: frosted metric chips floating over a soft
+        // gradient, blurring the colour behind them.
+        return Container(
+          padding: const EdgeInsets.all(AppSpacing.x5),
+          decoration: BoxDecoration(
+            gradient: AppGradients.hero,
+            borderRadius: BorderRadius.circular(AppRadius.xl),
+            boxShadow: AppShadows.soft,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Salut, $firstName',
+                style: const TextStyle(
+                  fontFamily: '.SF Pro Display',
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
+                  color: Colors.white,
+                ),
               ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.navy.withAlpha(45),
-                  blurRadius: 22,
-                  offset: const Offset(0, 10),
+              const SizedBox(height: 4),
+              Text(
+                sessions.isEmpty
+                    ? 'Începe primul subiect și îți construim progresul automat.'
+                    : 'Ultima sesiune: ${sessions.first.subjectName} · ${sessions.first.year}',
+                style: TextStyle(
+                  fontFamily: '.SF Pro Text',
+                  fontSize: 14,
+                  height: 1.35,
+                  color: Colors.white.withValues(alpha: 0.8),
                 ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Tablou de bord',
-                  style: TextStyle(
-                    fontFamily: '.SF Pro Display',
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+              ),
+              const SizedBox(height: AppSpacing.x4),
+              Row(
+                children: [
+                  Expanded(
+                    child: _GlassMetric(
+                      icon: CupertinoIcons.doc_checkmark,
+                      label: 'Subiecte',
+                      value: '${progress.solvedCount}',
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  sessions.isEmpty
-                      ? 'Începe primul subiect și îți construim progresul automat.'
-                      : 'Ultima sesiune: ${sessions.first.subjectName} · ${sessions.first.year}',
-                  style: const TextStyle(
-                    fontFamily: '.SF Pro Text',
-                    fontSize: 13,
-                    color: Colors.white70,
+                  const SizedBox(width: AppSpacing.x3),
+                  Expanded(
+                    child: _GlassMetric(
+                      icon: CupertinoIcons.chart_bar,
+                      label: 'Ultima notă',
+                      value: latestGrade,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _DashboardMetric(
-                        label: 'Subiecte',
-                        value: '${progress.solvedCount}',
-                      ),
+                  const SizedBox(width: AppSpacing.x3),
+                  Expanded(
+                    child: _GlassMetric(
+                      icon: CupertinoIcons.flame,
+                      label: 'Streak',
+                      value: '${progress.streakDays}z',
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _DashboardMetric(
-                        label: 'Ultima notă',
-                        value: latestGrade,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _DashboardMetric(
-                        label: 'Streak',
-                        value: '${progress.streakDays} zile',
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
         );
       },
@@ -1572,59 +1538,83 @@ class _HomeOverviewPanel extends StatelessWidget {
   }
 }
 
-class _DashboardMetric extends StatelessWidget {
+/// Frosted metric chip used on the dashboard hero — a Liquid Glass surface.
+class _GlassMetric extends StatelessWidget {
+  final IconData icon;
   final String label;
   final String value;
 
-  const _DashboardMetric({required this.label, required this.value});
+  const _GlassMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withAlpha(22),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white.withAlpha(30)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-              fontSize: 15,
-            ),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: BackdropFilter(
+        filter: ui.ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.x3,
+            vertical: AppSpacing.x3,
           ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontWeight: FontWeight.w500,
-              fontSize: 11,
-            ),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.16),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.22)),
           ),
-        ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, size: 16, color: Colors.white),
+              const SizedBox(height: 6),
+              Text(
+                value,
+                maxLines: 1,
+                style: const TextStyle(
+                  fontFamily: '.SF Pro Display',
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.3,
+                  fontSize: 17,
+                ),
+              ),
+              const SizedBox(height: 1),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: '.SF Pro Text',
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white.withValues(alpha: 0.75),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
+/// Daily study section — planner shortcuts with live task progress.
 class _NextLevelSection extends StatelessWidget {
   const _NextLevelSection();
 
   @override
   Widget build(BuildContext context) {
-    return IOSSection(
+    return CardGroup(
       header: 'Bac NextLevel',
       footer:
           'Resurse recomandate pentru progres rapid: PDF-uri, cărți și video-uri utile.',
       children: [
-        IOSCell(
-          leading: const AppIconBadge(
+        CardRow(
+          leading: const TintedIcon(
             icon: CupertinoIcons.doc_richtext,
             color: AppColors.indigo,
           ),
@@ -1658,9 +1648,9 @@ class _NextLevelSection extends StatelessWidget {
             ),
           ),
         ),
-        IOSCell(
-          leading: const AppIconBadge(
-            icon: CupertinoIcons.book_fill,
+        CardRow(
+          leading: const TintedIcon(
+            icon: CupertinoIcons.book,
             color: AppColors.orange,
           ),
           title: 'Cărți recomandate',
@@ -1670,7 +1660,7 @@ class _NextLevelSection extends StatelessWidget {
             cupertinoRoute(
               const ResourceCategoryScreen(
                 title: 'Cărți recomandate',
-                icon: CupertinoIcons.book_fill,
+                icon: CupertinoIcons.book,
                 color: AppColors.orange,
                 items: [
                   ResourceItem(
@@ -1693,9 +1683,9 @@ class _NextLevelSection extends StatelessWidget {
             ),
           ),
         ),
-        IOSCell(
-          leading: const AppIconBadge(
-            icon: CupertinoIcons.play_rectangle_fill,
+        CardRow(
+          leading: const TintedIcon(
+            icon: CupertinoIcons.play_rectangle,
             color: AppColors.teal,
           ),
           title: 'Video-uri explicative',
@@ -1705,7 +1695,7 @@ class _NextLevelSection extends StatelessWidget {
             cupertinoRoute(
               const ResourceCategoryScreen(
                 title: 'Video-uri explicative',
-                icon: CupertinoIcons.play_rectangle_fill,
+                icon: CupertinoIcons.play_rectangle,
                 color: AppColors.teal,
                 items: [
                   ResourceItem(
@@ -1755,46 +1745,25 @@ class ResourceCategoryScreen extends StatelessWidget {
       body: CustomScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 100,
-            backgroundColor: AppColors.background,
-            surfaceTintColor: Colors.transparent,
-            scrolledUnderElevation: 0.5,
-            shadowColor: AppColors.separator,
-            leading: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () => Navigator.pop(context),
-              child: const Icon(CupertinoIcons.back, color: AppColors.blue),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
-              title: Text(title, style: AppText.largeTitleStyle),
-              expandedTitleScale: 1.0,
-              collapseMode: CollapseMode.none,
-            ),
-          ),
+          glassSliverBar(context, title: title, titleSize: 26),
           SliverToBoxAdapter(
             child: Column(
               children: [
-                const SizedBox(height: 8),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.separator),
-                    ),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.page,
+                    AppSpacing.x5,
+                    AppSpacing.page,
+                    0,
+                  ),
+                  child: FloatingCard(
                     child: Row(
                       children: [
-                        AppIconBadge(icon: icon, color: color, size: 46),
-                        const SizedBox(width: 12),
+                        TintedIcon(icon: icon, color: color, size: 46),
+                        const SizedBox(width: AppSpacing.x4),
                         Expanded(
                           child: Text(
-                            'Poți adăuga materiale local în `assets/resources/` și le centralizăm aici.',
+                            'Poți adăuga materiale local în assets/resources/ și le centralizăm aici.',
                             style: AppText.subheadStyle,
                           ),
                         ),
@@ -1802,13 +1771,13 @@ class ResourceCategoryScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                IOSSection(
+                CardGroup(
                   header: 'Recomandări',
                   children: [
                     for (final item in items)
-                      IOSCell(
-                        leading: AppIconBadge(
-                          icon: CupertinoIcons.checkmark_seal_fill,
+                      CardRow(
+                        leading: TintedIcon(
+                          icon: CupertinoIcons.checkmark_seal,
                           color: color,
                         ),
                         title: item.title,
@@ -1817,7 +1786,7 @@ class ResourceCategoryScreen extends StatelessWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 36),
+                const SizedBox(height: AppSpacing.x10),
               ],
             ),
           ),
@@ -1847,45 +1816,44 @@ class SubjectListScreen extends StatelessWidget {
       body: CustomScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 100,
-            backgroundColor: AppColors.background,
-            surfaceTintColor: Colors.transparent,
-            scrolledUnderElevation: 0.5,
-            shadowColor: AppColors.separator,
-            leading: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () => Navigator.pop(context),
-              child: const Icon(CupertinoIcons.back, color: AppColors.blue),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
-              title: Text(profile.name, style: AppText.largeTitleStyle),
-              expandedTitleScale: 1.0,
-              collapseMode: CollapseMode.none,
-            ),
-          ),
+          glassSliverBar(context, title: profile.name, titleSize: 26),
           SliverToBoxAdapter(
             child: Column(
               children: [
-                const SizedBox(height: 8),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.page,
+                    AppSpacing.x5,
+                    AppSpacing.page,
+                    0,
+                  ),
                   child: Container(
-                    padding: const EdgeInsets.all(18),
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(AppSpacing.x5),
                     decoration: BoxDecoration(
-                      color: profile.accentColor,
-                      borderRadius: BorderRadius.circular(16),
+                      gradient: AppGradients.accent(profile.accentColor),
+                      borderRadius: BorderRadius.circular(AppRadius.xl),
+                      boxShadow: AppShadows.soft,
                     ),
                     child: Row(
                       children: [
-                        AppIconBadge(
-                          icon: profile.icon,
-                          color: Colors.white.withAlpha(64),
-                          size: 52,
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.25),
+                            ),
+                          ),
+                          child: Icon(
+                            profile.icon,
+                            color: Colors.white,
+                            size: 26,
+                          ),
                         ),
-                        const SizedBox(width: 14),
+                        const SizedBox(width: AppSpacing.x4),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1905,8 +1873,8 @@ class SubjectListScreen extends StatelessWidget {
                                 profile.description,
                                 style: TextStyle(
                                   fontFamily: '.SF Pro Text',
-                                  fontSize: 14,
-                                  color: Colors.white.withAlpha(204),
+                                  fontSize: 13,
+                                  color: Colors.white.withValues(alpha: 0.8),
                                 ),
                               ),
                             ],
@@ -1916,13 +1884,12 @@ class SubjectListScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                IOSSection(
+                CardGroup(
                   header: 'Materii',
                   children: [
                     for (final subject in profile.subjects)
-                      IOSCell(
-                        leading: AppIconBadge(
+                      CardRow(
+                        leading: TintedIcon(
                           icon: subject.icon,
                           color: subject.accentColor,
                         ),
@@ -1941,7 +1908,7 @@ class SubjectListScreen extends StatelessWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: AppSpacing.x10),
               ],
             ),
           ),
@@ -1973,36 +1940,27 @@ class YearSelectionScreen extends StatelessWidget {
       body: CustomScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 100,
-            backgroundColor: AppColors.background,
-            surfaceTintColor: Colors.transparent,
-            scrolledUnderElevation: 0.5,
-            shadowColor: AppColors.separator,
-            leading: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () => Navigator.pop(context),
-              child: const Icon(CupertinoIcons.back, color: AppColors.blue),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
-              title: Text(subjectName, style: AppText.largeTitleStyle),
-              expandedTitleScale: 1.0,
-              collapseMode: CollapseMode.none,
-            ),
-          ),
+          glassSliverBar(context, title: '', largeTitle: false),
           SliverToBoxAdapter(
             child: Column(
               children: [
-                const SizedBox(height: 8),
-                IOSSection(
+                const SizedBox(height: AppSpacing.x3),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.page,
+                  ),
+                  child: SubjectTitleCard(
+                    title: subjectName,
+                    accentColor: subjectColor,
+                  ),
+                ),
+                CardGroup(
                   header: 'Alege anul',
                   footer: 'Subiectele sunt disponibile din 2020.',
                   children: [
                     for (final year in examYears)
-                      IOSCell(
-                        leading: const AppIconBadge(
+                      CardRow(
+                        leading: const TintedIcon(
                           icon: CupertinoIcons.calendar,
                           color: AppColors.indigo,
                         ),
@@ -2022,7 +1980,7 @@ class YearSelectionScreen extends StatelessWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: AppSpacing.x10),
               ],
             ),
           ),
@@ -2054,52 +2012,32 @@ class SessionSelectionScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 100,
-            backgroundColor: AppColors.background,
-            surfaceTintColor: Colors.transparent,
-            scrolledUnderElevation: 0.5,
-            shadowColor: AppColors.separator,
-            leading: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () => Navigator.pop(context),
-              child: const Icon(CupertinoIcons.back, color: AppColors.blue),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
-              title: Text(year, style: AppText.largeTitleStyle),
-              expandedTitleScale: 1.0,
-              collapseMode: CollapseMode.none,
-            ),
-          ),
+          glassSliverBar(context, title: '', largeTitle: false),
           SliverToBoxAdapter(
             child: Column(
               children: [
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.x3),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
-                  child: Text(
-                    '$subjectName · $year',
-                    style: AppText.subheadStyle,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.page,
+                  ),
+                  child: SubjectTitleCard(
+                    title: subjectName,
+                    subtitle: 'Anul $year',
+                    accentColor: subjectColor,
                   ),
                 ),
-                IOSSection(
+                CardGroup(
                   header: 'Alege sesiunea',
                   children: [
                     for (final session in examSessions)
-                      IOSCell(
-                        leading: AppIconBadge(
+                      CardRow(
+                        leading: TintedIcon(
                           icon: session.icon,
                           color: session.color,
                         ),
                         title: session.name,
                         subtitle: session.desc,
-                        trailing: const Icon(
-                          CupertinoIcons.play_fill,
-                          color: AppColors.blue,
-                          size: 16,
-                        ),
                         onTap: () => Navigator.push(
                           context,
                           cupertinoRoute(
@@ -2117,7 +2055,7 @@ class SessionSelectionScreen extends StatelessWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: AppSpacing.x10),
               ],
             ),
           ),
@@ -2185,9 +2123,18 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
       if (!mounted) return;
       showCupertinoDialog(
         context: context,
-        builder: (_) => const CupertinoAlertDialog(
-          title: Text('PDF indisponibil'),
-          content: Text('Nu există subiect local pentru această selecție.'),
+        builder: (dialogContext) => CupertinoAlertDialog(
+          title: const Text('Subiect indisponibil'),
+          content: const Text(
+            'Nu am găsit acest subiect pentru selecția curentă. Încearcă alt an sau altă materie.',
+          ),
+          actions: [
+            CupertinoDialogAction(
+              isDefaultAction: true,
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Închide'),
+            ),
+          ],
         ),
       );
       return;
@@ -2343,128 +2290,74 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
       body: CustomScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 100,
-            backgroundColor: AppColors.background,
-            surfaceTintColor: Colors.transparent,
-            scrolledUnderElevation: 0.5,
-            shadowColor: AppColors.separator,
-            leading: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () => Navigator.pop(context),
-              child: const Icon(CupertinoIcons.back, color: AppColors.blue),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(86, 0, 16, 14),
-              title: Text(widget.subjectName, style: AppText.largeTitleStyle),
-              expandedTitleScale: 1.0,
-              collapseMode: CollapseMode.none,
-            ),
-          ),
+          glassSliverBar(context, title: '', largeTitle: false),
           SliverToBoxAdapter(
             child: Column(
               children: [
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.x3),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: widget.subjectColor,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      children: [
-                        AppIconBadge(
-                          icon: widget.subjectIcon,
-                          color: Colors.white.withAlpha(64),
-                          size: 46,
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.sessionName,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 16,
-                                letterSpacing: -0.3,
-                              ),
-                            ),
-                            const SizedBox(height: 3),
-                            Text(
-                              widget.year,
-                              style: TextStyle(
-                                color: Colors.white.withAlpha(204),
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.page,
+                  ),
+                  child: SubjectTitleCard(
+                    title: widget.subjectName,
+                    subtitle: '${widget.year} · ${widget.sessionName}',
+                    accentColor: widget.subjectColor,
                   ),
                 ),
+                // Timer examen
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-                  child: Container(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.separator),
-                    ),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.page,
+                    AppSpacing.x4,
+                    AppSpacing.page,
+                    0,
+                  ),
+                  child: FloatingCard(
                     child: Column(
                       children: [
                         Row(
                           children: [
+                            TintedIcon(
+                              icon: CupertinoIcons.timer,
+                              color: _timerColor,
+                              size: 36,
+                            ),
+                            const SizedBox(width: AppSpacing.x3),
                             Expanded(
-                              child: Text(
-                                'Timer examen · $_formattedTime',
-                                style: TextStyle(
-                                  fontFamily: '.SF Pro Display',
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w700,
-                                  color: _timerColor,
-                                ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Timer examen',
+                                    style: AppText.captionStyle,
+                                  ),
+                                  const SizedBox(height: 1),
+                                  Text(
+                                    _formattedTime,
+                                    style: TextStyle(
+                                      fontFamily: '.SF Pro Display',
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: -0.4,
+                                      fontFeatures: const [
+                                        ui.FontFeature.tabularFigures(),
+                                      ],
+                                      color: _timerColor,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _timerColor.withAlpha(31),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                _timerStatusLabel(),
-                                style: TextStyle(
-                                  color: _timerColor,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
+                            PillBadge(_timerStatusLabel(), color: _timerColor),
                           ],
                         ),
-                        const SizedBox(height: 10),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(99),
-                          child: LinearProgressIndicator(
-                            minHeight: 8,
-                            value: _timerProgress,
-                            backgroundColor: AppColors.background,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              _timerColor,
-                            ),
-                          ),
+                        const SizedBox(height: AppSpacing.x4),
+                        SoftProgressBar(
+                          value: _timerProgress,
+                          color: _timerColor,
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: AppSpacing.x2),
                         Row(
                           children: [
                             Expanded(
@@ -2479,48 +2372,27 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: AppSpacing.x4),
                         Row(
                           children: [
                             Expanded(
-                              child: CupertinoButton(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 10,
-                                ),
-                                borderRadius: BorderRadius.circular(10),
-                                color: AppColors.green,
+                              child: AppButton(
+                                label: _secondsLeft == _bacDuration
+                                    ? 'Start 3h'
+                                    : 'Continuă fullscreen',
+                                icon: CupertinoIcons.play_fill,
+                                accent: AppColors.green,
+                                height: 48,
                                 onPressed: _startTimer,
-                                child: Text(
-                                  _secondsLeft == _bacDuration
-                                      ? 'Start 3h'
-                                      : 'Continuă fullscreen',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            CupertinoButton(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 10,
-                              ),
-                              borderRadius: BorderRadius.circular(10),
-                              color: _examStarted
-                                  ? AppColors.red
-                                  : AppColors.background,
+                            const SizedBox(width: AppSpacing.x3),
+                            AppButton(
+                              label: 'Oprește',
+                              style: AppButtonStyle.destructive,
+                              expanded: false,
+                              height: 48,
                               onPressed: _examStarted ? _confirmStopExam : null,
-                              child: Text(
-                                'Oprește',
-                                style: TextStyle(
-                                  color: _examStarted
-                                      ? Colors.white
-                                      : AppColors.tertiaryLabel,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
                             ),
                           ],
                         ),
@@ -2528,18 +2400,25 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                     ),
                   ),
                 ),
+                // Documente oficiale
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.separator),
-                    ),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.page,
+                    AppSpacing.x4,
+                    AppSpacing.page,
+                    0,
+                  ),
+                  child: FloatingCard(
+                    padding: EdgeInsets.zero,
                     child: Column(
                       children: [
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.x4,
+                            AppSpacing.x4,
+                            AppSpacing.x4,
+                            AppSpacing.x3,
+                          ),
                           child: Row(
                             children: [
                               Expanded(
@@ -2548,9 +2427,7 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                                   children: [
                                     Text(
                                       'Documente oficiale',
-                                      style: AppText.bodyStyle.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                      style: AppText.headlineStyle,
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
@@ -2563,6 +2440,8 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                               ),
                               CupertinoSlidingSegmentedControl<bool>(
                                 groupValue: _showAnswerKey,
+                                backgroundColor: AppColors.fill,
+                                thumbColor: AppColors.surface,
                                 children: const {
                                   false: Padding(
                                     padding: EdgeInsets.symmetric(
@@ -2589,9 +2468,13 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                             ],
                           ),
                         ),
-                        const Divider(height: 1),
+                        Divider(
+                          height: 0.5,
+                          thickness: 0.5,
+                          color: AppColors.separator,
+                        ),
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                          padding: const EdgeInsets.all(AppSpacing.x4),
                           child: Builder(
                             builder: (context) {
                               if (_pdfLoading) {
@@ -2618,23 +2501,15 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                                   textAlign: TextAlign.center,
                                 );
                               }
-                              return SizedBox(
-                                width: double.infinity,
-                                child: CupertinoButton(
-                                  color: AppColors.blue,
-                                  borderRadius: BorderRadius.circular(10),
-                                  onPressed: () async {
-                                    AppHaptics.selection();
-                                    await _openPdfFullscreen(assetPath);
-                                  },
-                                  child: const Text(
-                                    'Previzualizare',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
+                              return AppButton(
+                                label: 'Previzualizare',
+                                icon: CupertinoIcons.doc_text_viewfinder,
+                                style: AppButtonStyle.secondary,
+                                height: 48,
+                                onPressed: () async {
+                                  AppHaptics.selection();
+                                  await _openPdfFullscreen(assetPath);
+                                },
                               );
                             },
                           ),
@@ -2643,11 +2518,12 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                     ),
                   ),
                 ),
-                IOSSection(
+                // Nota estimată
+                CardGroup(
                   header: 'Nota estimată',
                   children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                      padding: const EdgeInsets.all(AppSpacing.x4),
                       child: Column(
                         children: [
                           Row(
@@ -2656,34 +2532,34 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                               Text('Autoevaluare', style: AppText.bodyStyle),
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 4,
+                                  horizontal: 14,
+                                  vertical: 5,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: _gradeColor(
-                                    _estimatedGrade,
-                                  ).withAlpha(38),
-                                  borderRadius: BorderRadius.circular(10),
+                                  color: AppColors.tint(
+                                    _gradeColor(_estimatedGrade),
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    AppRadius.sm,
+                                  ),
                                 ),
                                 child: Text(
                                   _estimatedGrade.toStringAsFixed(1),
-                                  style: TextStyle(
-                                    fontFamily: '.SF Pro Display',
+                                  style: AppText.statStyle.copyWith(
                                     fontSize: 20,
-                                    fontWeight: FontWeight.w700,
                                     color: _gradeColor(_estimatedGrade),
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.x2),
                           SliderTheme(
                             data: SliderThemeData(
-                              trackHeight: 4,
+                              trackHeight: 5,
                               activeTrackColor: _gradeColor(_estimatedGrade),
-                              inactiveTrackColor: AppColors.background,
-                              thumbColor: _gradeColor(_estimatedGrade),
+                              inactiveTrackColor: AppColors.fill,
+                              thumbColor: Colors.white,
                               overlayShape: SliderComponentShape.noOverlay,
                             ),
                             child: Slider(
@@ -2710,126 +2586,108 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen> {
                     ),
                   ],
                 ),
-                Padding(
-                  padding: EdgeInsets.fromLTRB(20, 20, 20, 6),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'NOTE PERSONALE',
-                      style: AppText.footnoteSectionStyle,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextField(
-                          controller: _notesController,
-                          maxLines: 5,
-                          onTap: () => setState(() => _editingNotes = true),
-                          scrollPadding: const EdgeInsets.only(bottom: 170),
-                          style: AppText.bodyStyle,
-                          decoration: InputDecoration(
-                            hintText:
-                                'Adaugă observații, formule de reținut, puncte slabe...',
-                            hintStyle: AppText.subheadStyle,
-                            border: InputBorder.none,
-                          ),
-                        ),
-                        if (_editingNotes) ...[
-                          Divider(
-                            color: AppColors.separator,
-                            height: 16,
-                            thickness: 0.5,
-                          ),
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: CupertinoButton(
-                              padding: EdgeInsets.zero,
-                              child: const Text(
-                                'Salvează',
-                                style: TextStyle(
-                                  color: AppColors.blue,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                // Note personale
+                CardGroup(
+                  header: 'Note personale',
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(AppSpacing.x4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          GestureDetector(
+                            onTap: () => setState(() => _editingNotes = true),
+                            child: AppInput(
+                              controller: _notesController,
+                              hint:
+                                  'Adaugă observații, formule de reținut, puncte slabe...',
+                              maxLines: 5,
+                              scrollPadding: const EdgeInsets.only(
+                                bottom: 170,
                               ),
-                              onPressed: () {
-                                AppHaptics.selection();
-                                setState(() => _editingNotes = false);
-                                FocusScope.of(context).unfocus();
-                              },
                             ),
                           ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SafeArea(
-                  top: false,
-                  minimum: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: CupertinoButton(
-                      color: AppColors.blue,
-                      borderRadius: BorderRadius.circular(14),
-                      onPressed: () async {
-                        AppHaptics.heavy();
-                        final user = AuthService.currentUser;
-                        final cleanNotes = _notesController.text.trim();
-                        if (user != null) {
-                          await FirestoreService.addSession(
-                            user,
-                            StudySession(
-                              subjectName: widget.subjectName,
-                              year: widget.year,
-                              sessionName: widget.sessionName,
-                              durationSeconds: _bacDuration - _secondsLeft,
-                              estimatedGrade: _estimatedGrade,
-                              notes: cleanNotes,
-                              completedAt: DateTime.now(),
-                            ),
-                          );
-                        }
-                        if (!context.mounted) return;
-                        showCupertinoDialog(
-                          context: context,
-                          builder: (_) => CupertinoAlertDialog(
-                            title: const Text('Subiect finalizat'),
-                            content: const Text(
-                              'Subiectul a fost marcat ca rezolvat și salvat în istoricul tău.',
-                            ),
-                            actions: [
-                              CupertinoDialogAction(
-                                isDefaultAction: true,
+                          if (_editingNotes) ...[
+                            const SizedBox(height: AppSpacing.x3),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: AppButton(
+                                label: 'Salvează',
+                                style: AppButtonStyle.secondary,
+                                expanded: false,
+                                height: 40,
                                 onPressed: () {
-                                  Navigator.pop(context);
-                                  Navigator.pop(context);
+                                  AppHaptics.selection();
+                                  setState(() => _editingNotes = false);
+                                  FocusScope.of(context).unfocus();
                                 },
-                                child: const Text('Gata'),
                               ),
-                            ],
-                          ),
-                        );
-                      },
-                      child: const Text(
-                        'Marchează ca rezolvat',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                        ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.x6),
+                SafeArea(
+                  top: false,
+                  minimum: const EdgeInsets.fromLTRB(
+                    AppSpacing.page,
+                    0,
+                    AppSpacing.page,
+                    AppSpacing.x3,
+                  ),
+                  child: AppButton(
+                    label: 'Marchează ca rezolvat',
+                    icon: CupertinoIcons.checkmark_alt,
+                    height: 56,
+                    onPressed: () async {
+                      AppHaptics.heavy();
+                      final user = AuthService.currentUser;
+                      final cleanNotes = _notesController.text.trim();
+                      if (user != null) {
+                        await FirestoreService.addSession(
+                          user,
+                          StudySession(
+                            subjectName: widget.subjectName,
+                            year: widget.year,
+                            sessionName: widget.sessionName,
+                            durationSeconds: _bacDuration - _secondsLeft,
+                            estimatedGrade: _estimatedGrade,
+                            notes: cleanNotes,
+                            completedAt: DateTime.now(),
+                          ),
+                        );
+                      }
+                      await GamificationService.instance
+                          .recordStudySessionCompleted(
+                            completedAt: DateTime.now(),
+                            isSimulation: widget.sessionName
+                                .toLowerCase()
+                                .contains('simulare'),
+                          );
+                      if (!context.mounted) return;
+                      showCupertinoDialog(
+                        context: context,
+                        builder: (_) => CupertinoAlertDialog(
+                          title: const Text('Subiect finalizat'),
+                          content: const Text(
+                            'Subiectul a fost marcat ca rezolvat și salvat în istoricul tău.',
+                          ),
+                          actions: [
+                            CupertinoDialogAction(
+                              isDefaultAction: true,
+                              onPressed: () {
+                                Navigator.pop(context);
+                                Navigator.pop(context);
+                              },
+                              child: const Text('Gata'),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ),
                 SizedBox(
@@ -2962,11 +2820,11 @@ class _PdfFullscreenScreenState extends State<PdfFullscreenScreen> {
           backgroundColor: Colors.black,
           foregroundColor: Colors.white,
           title: Text(
-            'PDF · Pagina $_currentPage${_pageCount > 0 ? '/$_pageCount' : ''}',
+            'Pagina $_currentPage${_pageCount > 0 ? ' din $_pageCount' : ''}',
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
           leading: IconButton(
-            icon: const Icon(CupertinoIcons.back, color: Colors.white),
+            icon: const Icon(CupertinoIcons.chevron_back, color: Colors.white),
             onPressed: () {
               _onWillPop();
             },
@@ -2988,57 +2846,68 @@ class _PdfFullscreenScreenState extends State<PdfFullscreenScreen> {
               Positioned.fill(child: _buildPdfViewer()),
               if (widget.examMode)
                 Positioned(
-                  left: 12,
-                  right: 12,
-                  top: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 9,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.65),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
+                  left: AppSpacing.x4,
+                  right: AppSpacing.x4,
+                  top: AppSpacing.x3,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    child: BackdropFilter(
+                      filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.x4,
+                          vertical: AppSpacing.x3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.15),
+                          ),
+                        ),
+                        child: Column(
                           children: [
-                            Text(
-                              _formattedTime,
-                              style: TextStyle(
-                                color: _timerColor,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
-                              ),
+                            Row(
+                              children: [
+                                Text(
+                                  _formattedTime,
+                                  style: TextStyle(
+                                    color: _timerColor,
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 15,
+                                    fontFeatures: const [
+                                      ui.FontFeature.tabularFigures(),
+                                    ],
+                                  ),
+                                ),
+                                const Spacer(),
+                                Text(
+                                  '${(_secondsLeft / 60).ceil()} min',
+                                  style: const TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const Spacer(),
-                            Text(
-                              '${(_secondsLeft / 60).ceil()} min',
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                            const SizedBox(height: AppSpacing.x2),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.pill,
+                              ),
+                              child: LinearProgressIndicator(
+                                minHeight: 4,
+                                value: _timerProgress.clamp(0, 1),
+                                backgroundColor: Colors.white24,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  _timerColor,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: LinearProgressIndicator(
-                            minHeight: 4,
-                            value: _timerProgress.clamp(0, 1),
-                            backgroundColor: Colors.white24,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              _timerColor,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -3054,6 +2923,29 @@ class _PdfFullscreenScreenState extends State<PdfFullscreenScreen> {
       backgroundColor: Colors.black,
       panEnabled: true,
       scaleEnabled: true,
+      loadingBannerBuilder: (context, bytesDownloaded, totalBytes) {
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CupertinoActivityIndicator(
+                color: Colors.white,
+                radius: 14,
+              ),
+              const SizedBox(height: AppSpacing.x3),
+              Text(
+                totalBytes != null && totalBytes > 0
+                    ? 'Se încarcă ${(bytesDownloaded / totalBytes * 100).clamp(0, 100).toStringAsFixed(0)}%'
+                    : 'Se încarcă subiectul...',
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+            ],
+          ),
+        );
+      },
+      errorBannerBuilder: (context, error, stackTrace, documentRef) {
+        return _PdfErrorView(onBack: _onWillPop);
+      },
       onViewerReady: (document, controller) {
         if (!mounted) return;
         setState(() {
@@ -3093,4 +2985,71 @@ class ExamFullscreenResult {
     required this.secondsLeft,
     required this.isFinished,
   });
+}
+
+/// Shown inside the fullscreen viewer when a PDF can't be loaded (offline,
+/// missing document, etc.) — always offers a clear way back.
+class _PdfErrorView extends StatelessWidget {
+  final VoidCallback onBack;
+
+  const _PdfErrorView({required this.onBack});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.black,
+      padding: const EdgeInsets.all(AppSpacing.x6),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+              ),
+              child: const Icon(
+                CupertinoIcons.wifi_slash,
+                color: Colors.white,
+                size: 30,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.x4),
+            const Text(
+              'Subiectul nu a putut fi încărcat',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: '.SF Pro Display',
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.x2),
+            const Text(
+              'Verifică conexiunea la internet și încearcă din nou. '
+              'Documentul poate fi indisponibil momentan.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white60, fontSize: 14, height: 1.4),
+            ),
+            const SizedBox(height: AppSpacing.x6),
+            CupertinoButton(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              onPressed: onBack,
+              child: const Text(
+                'Înapoi',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

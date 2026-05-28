@@ -1,7 +1,11 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 
+import '../../../src/design/ui.dart';
 import '../../../src/models/app_data.dart';
+import '../../../src/services/app_settings.dart';
 import '../../gamification/widgets/badge_grid.dart';
+import '../models/study_task_model.dart';
 import '../services/study_planner_service.dart';
 import '../widgets/study_task_card.dart';
 
@@ -15,73 +19,102 @@ class WeeklyPlanScreen extends StatelessWidget {
       Duration(days: now.weekday - DateTime.monday),
     );
 
-    return CupertinoPageScaffold(
+    return Scaffold(
       backgroundColor: AppColors.background,
-      navigationBar: const CupertinoNavigationBar(
-        middle: Text('Plan săptămânal'),
-        previousPageTitle: 'Înapoi',
-      ),
-      child: SafeArea(
-        child: ValueListenableBuilder(
-          valueListenable: StudyPlannerService.instance.tasksNotifier,
-          builder: (context, _, _) {
-            final tasks = StudyPlannerService.instance.tasksForWeek(now);
-            final grouped = <String, List<dynamic>>{};
-            for (var i = 0; i < 7; i++) {
-              final day = weekStart.add(Duration(days: i));
-              final key = _formatRoDay(day);
-              grouped[key] = StudyPlannerService.instance.tasksForDate(day);
-            }
+      body: CustomScrollView(
+        slivers: [
+          glassSliverBar(context, title: 'Plan săptămânal', titleSize: 27),
+          SliverToBoxAdapter(
+            child: ValueListenableBuilder(
+              valueListenable: StudyPlannerService.instance.tasksNotifier,
+              builder: (context, _, _) {
+                final tasks = StudyPlannerService.instance.tasksForWeek(now);
+                final grouped = <String, List<StudyTaskModel>>{};
+                for (var i = 0; i < 7; i++) {
+                  final day = weekStart.add(Duration(days: i));
+                  grouped[_formatRoDay(day)] = StudyPlannerService.instance
+                      .tasksForDate(day);
+                }
 
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
-              children: [
-                for (final entry in grouped.entries) ...[
-                  Text(
-                    entry.key,
-                    style: AppText.footnoteSectionStyle.copyWith(fontSize: 12),
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.page,
+                    AppSpacing.x5,
+                    AppSpacing.page,
+                    AppSpacing.x10,
                   ),
-                  const SizedBox(height: 8),
-                  if (entry.value.isEmpty)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (tasks.isEmpty)
+                        const EmptyState(
+                          icon: CupertinoIcons.calendar,
+                          title: 'Săptămână liberă',
+                          message:
+                              'Nu există task-uri generate pentru această săptămână. Configurează planner-ul de pe ecranul principal.',
+                        ),
+                      for (final entry in grouped.entries) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            left: AppSpacing.x2,
+                            bottom: AppSpacing.x2,
+                          ),
+                          child: Text(
+                            entry.key.toUpperCase(),
+                            style: AppText.footnoteSectionStyle,
+                          ),
+                        ),
+                        if (entry.value.isEmpty)
+                          Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.only(
+                              bottom: AppSpacing.x4,
+                            ),
+                            padding: const EdgeInsets.all(AppSpacing.x3),
+                            decoration: BoxDecoration(
+                              color: AppColors.fill,
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.sm,
+                              ),
+                            ),
+                            child: Text(
+                              'Zi liberă sau fără task-uri.',
+                              style: AppText.captionStyle,
+                            ),
+                          ),
+                        for (final task in entry.value) ...[
+                          StudyTaskCard(
+                            task: task,
+                            onChanged: (value) {
+                              AppHaptics.selection();
+                              StudyPlannerService.instance
+                                  .toggleTaskCompletion(task.id, value);
+                            },
+                          ),
+                          const SizedBox(height: AppSpacing.x3),
+                        ],
+                        if (entry.value.isNotEmpty)
+                          const SizedBox(height: AppSpacing.x2),
+                      ],
+                      const SizedBox(height: AppSpacing.x4),
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          left: AppSpacing.x2,
+                          bottom: AppSpacing.x2,
+                        ),
+                        child: Text(
+                          'BADGE-URI',
+                          style: AppText.footnoteSectionStyle,
+                        ),
                       ),
-                      child: Text(
-                        'Zi liberă sau fără task-uri.',
-                        style: AppText.captionStyle,
-                      ),
-                    ),
-                  for (final task in entry.value) ...[
-                    StudyTaskCard(
-                      task: task,
-                      onChanged: (value) => StudyPlannerService.instance
-                          .toggleTaskCompletion(task.id, value),
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                ],
-                const SizedBox(height: 8),
-                const Text(
-                  'Badge-uri',
-                  style: TextStyle(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 10),
-                const BadgeGrid(),
-                if (tasks.isEmpty) ...[
-                  const SizedBox(height: 10),
-                  Text(
-                    'Nu există task-uri în această săptămână.',
-                    style: AppText.subheadStyle,
+                      const BadgeGrid(),
+                    ],
                   ),
-                ],
-              ],
-            );
-          },
-        ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

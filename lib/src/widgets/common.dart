@@ -1,9 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../design/ui.dart';
 import '../models/app_data.dart';
-import '../services/app_settings.dart';
 
+export '../design/ui.dart';
+
+/// Soft-tinted icon badge — SF-Symbols style, replaces the old solid squares.
 class AppIconBadge extends StatelessWidget {
   final IconData icon;
   final Color color;
@@ -13,23 +16,16 @@ class AppIconBadge extends StatelessWidget {
     super.key,
     required this.icon,
     required this.color,
-    this.size = 44,
+    this.size = 40,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(size * 0.2279),
-      ),
-      child: Icon(icon, color: Colors.white, size: size * 0.52),
-    );
+    return TintedIcon(icon: icon, color: color, size: size);
   }
 }
 
+/// Grouped floating card of rows (kept name for compatibility).
 class IOSSection extends StatelessWidget {
   final String? header;
   final String? footer;
@@ -44,49 +40,12 @@ class IOSSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (header != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 6),
-            child: Text(
-              header!.toUpperCase(),
-              style: AppText.footnoteSectionStyle,
-            ),
-          ),
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            children: [
-              for (int i = 0; i < children.length; i++) ...[
-                children[i],
-                if (i < children.length - 1)
-                  Divider(
-                    height: 0,
-                    indent: 60,
-                    color: AppColors.separator,
-                    thickness: 0.5,
-                  ),
-              ],
-            ],
-          ),
-        ),
-        if (footer != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
-            child: Text(footer!, style: AppText.captionStyle),
-          ),
-      ],
-    );
+    return CardGroup(header: header, footer: footer, children: children);
   }
 }
 
-class IOSCell extends StatefulWidget {
+/// Row within a section (kept name for compatibility).
+class IOSCell extends StatelessWidget {
   final Widget leading;
   final String title;
   final String? subtitle;
@@ -103,54 +62,13 @@ class IOSCell extends StatefulWidget {
   });
 
   @override
-  State<IOSCell> createState() => _IOSCellState();
-}
-
-class _IOSCellState extends State<IOSCell> {
-  bool _pressed = false;
-
-  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) {
-        AppHaptics.selection();
-        setState(() => _pressed = true);
-      },
-      onTapUp: (_) {
-        setState(() => _pressed = false);
-        widget.onTap?.call();
-      },
-      onTapCancel: () => setState(() => _pressed = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 80),
-        color: _pressed ? AppColors.separator : AppColors.surface,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            widget.leading,
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(widget.title, style: AppText.bodyStyle),
-                  if (widget.subtitle != null) ...[
-                    const SizedBox(height: 2),
-                    Text(widget.subtitle!, style: AppText.subheadStyle),
-                  ],
-                ],
-              ),
-            ),
-            if (widget.trailing != null) widget.trailing!,
-            const SizedBox(width: 4),
-            Icon(
-              CupertinoIcons.chevron_right,
-              color: AppColors.tertiaryLabel,
-              size: 16,
-            ),
-          ],
-        ),
-      ),
+    return CardRow(
+      leading: leading,
+      title: title,
+      subtitle: subtitle,
+      trailing: trailing,
+      onTap: onTap,
     );
   }
 }
@@ -162,13 +80,69 @@ class CountBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return PillBadge('$count materii', color: AppColors.blue);
+  }
+}
+
+/// Hero title card for a subject — bright surface, soft accent glow.
+class SubjectTitleCard extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final Color accentColor;
+
+  const SubjectTitleCard({
+    super.key,
+    required this.title,
+    this.subtitle,
+    this.accentColor = AppColors.indigo,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.x5),
       decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(20),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        boxShadow: AppShadows.soft,
       ),
-      child: Text('$count materii', style: AppText.captionStyle),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 5,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              color: accentColor,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.x3),
+          SizedBox(
+            width: double.infinity,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                title,
+                maxLines: 1,
+                style: TextStyle(
+                  fontFamily: '.SF Pro Display',
+                  fontSize: 34,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.label,
+                  letterSpacing: -0.8,
+                ),
+              ),
+            ),
+          ),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(subtitle!, style: AppText.subheadStyle),
+          ],
+        ],
+      ),
     );
   }
 }

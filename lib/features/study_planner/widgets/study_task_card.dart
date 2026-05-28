@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 
+import '../../../src/design/ui.dart';
 import '../../../src/models/app_data.dart';
 import '../models/study_task_model.dart';
 
@@ -12,52 +13,56 @@ class StudyTaskCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDone = task.isCompleted;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isDone ? AppColors.green.withAlpha(120) : AppColors.separator,
+    return Pressable(
+      onTap: () => onChanged(!isDone),
+      child: FloatingCard(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.x4,
+          vertical: AppSpacing.x3,
         ),
-      ),
-      child: Row(
-        children: [
-          CupertinoButton(
-            padding: EdgeInsets.zero,
-            minimumSize: const Size(28, 28),
-            onPressed: () => onChanged(!isDone),
-            child: Icon(
-              isDone
-                  ? CupertinoIcons.check_mark_circled_solid
-                  : CupertinoIcons.circle,
-              color: isDone ? AppColors.green : AppColors.tertiaryLabel,
-              size: 24,
+        radius: AppRadius.md,
+        child: Row(
+          children: [
+            AnimatedScale(
+              duration: AppDurations.base,
+              curve: AppDurations.spring,
+              scale: isDone ? 1.05 : 1.0,
+              child: Icon(
+                isDone
+                    ? CupertinoIcons.checkmark_circle_fill
+                    : CupertinoIcons.circle,
+                color: isDone ? AppColors.green : AppColors.tertiaryLabel,
+                size: 26,
+              ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  task.title,
-                  style: AppText.bodyStyle.copyWith(
-                    fontWeight: FontWeight.w600,
-                    decoration: isDone ? TextDecoration.lineThrough : null,
+            const SizedBox(width: AppSpacing.x3),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    task.title,
+                    style: AppText.bodyStyle.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: isDone ? AppColors.secondLabel : AppColors.label,
+                      decoration: isDone ? TextDecoration.lineThrough : null,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${task.durationMinutes} min · ${task.subject}',
-                  style: AppText.captionStyle,
-                ),
-              ],
+                  const SizedBox(height: 3),
+                  Text(
+                    '${task.durationMinutes} min · ${task.subject}',
+                    style: AppText.captionStyle,
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Text('+${task.xpReward} XP', style: AppText.captionStyle),
-        ],
+            const SizedBox(width: AppSpacing.x2),
+            PillBadge(
+              '+${task.xpReward} XP',
+              color: isDone ? AppColors.green : AppColors.orange,
+            ),
+          ],
+        ),
       ),
     );
   }

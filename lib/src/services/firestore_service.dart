@@ -13,6 +13,8 @@ class UserProfileData {
   final bool examAlerts;
   final bool streakReminder;
   final bool gradeUpdates;
+  final bool onboardingCompleted;
+  final double currentGrade;
 
   const UserProfileData({
     required this.name,
@@ -26,6 +28,8 @@ class UserProfileData {
     required this.examAlerts,
     required this.streakReminder,
     required this.gradeUpdates,
+    required this.onboardingCompleted,
+    required this.currentGrade,
   });
 
   factory UserProfileData.defaults(User user) {
@@ -46,6 +50,8 @@ class UserProfileData {
       examAlerts: true,
       streakReminder: false,
       gradeUpdates: true,
+      onboardingCompleted: false,
+      currentGrade: 0,
     );
   }
 
@@ -69,6 +75,11 @@ class UserProfileData {
       streakReminder:
           (data['streakReminder'] as bool?) ?? defaults.streakReminder,
       gradeUpdates: (data['gradeUpdates'] as bool?) ?? defaults.gradeUpdates,
+      onboardingCompleted:
+          (data['onboardingCompleted'] as bool?) ??
+          defaults.onboardingCompleted,
+      currentGrade:
+          (data['currentGrade'] as num?)?.toDouble() ?? defaults.currentGrade,
     );
   }
 
@@ -85,6 +96,8 @@ class UserProfileData {
       'examAlerts': examAlerts,
       'streakReminder': streakReminder,
       'gradeUpdates': gradeUpdates,
+      'onboardingCompleted': onboardingCompleted,
+      'currentGrade': currentGrade,
     };
   }
 }
@@ -645,6 +658,21 @@ class FirestoreService {
     if (selectedProfile != null) updates['selectedProfile'] = selectedProfile;
 
     await _userDoc(user.uid).set(updates, SetOptions(merge: true));
+  }
+
+  /// Persists the choices made in the welcome flow and flips the
+  /// onboarding flag so the app moves past the intro screens.
+  static Future<void> completeOnboarding({
+    required User user,
+    required String selectedProfile,
+    required double currentGrade,
+  }) async {
+    await _userDoc(user.uid).set({
+      'selectedProfile': selectedProfile,
+      'currentGrade': currentGrade,
+      'onboardingCompleted': true,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   static Future<void> updateSettings(

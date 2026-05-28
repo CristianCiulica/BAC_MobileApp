@@ -1,5 +1,6 @@
 import 'package:flutter/cupertino.dart';
 
+import '../../../src/design/ui.dart';
 import '../../../src/models/app_data.dart';
 import '../services/gamification_service.dart';
 
@@ -11,44 +12,23 @@ class StreakCard extends StatelessWidget {
     return ValueListenableBuilder(
       valueListenable: GamificationService.instance.notifier,
       builder: (context, model, _) {
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: CupertinoColors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: CupertinoColors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
+        return FloatingCard(
+          padding: const EdgeInsets.all(AppSpacing.x4),
           child: Row(
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: AppColors.red.withAlpha(32),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  CupertinoIcons.flame_fill,
-                  color: AppColors.red,
-                  size: 20,
-                ),
+              const TintedIcon(
+                icon: CupertinoIcons.flame_fill,
+                color: AppColors.red,
+                size: 40,
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: AppSpacing.x3),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       '${model.streakDays} ${model.streakDays == 1 ? 'zi' : 'zile'} streak',
-                      style: AppText.bodyStyle.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: AppText.headlineStyle,
                     ),
                     const SizedBox(height: 2),
                     Text(

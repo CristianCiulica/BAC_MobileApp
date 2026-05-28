@@ -1,9 +1,10 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
 
+import '../../../src/design/ui.dart';
 import '../../../src/models/app_data.dart';
 import '../services/countdown_service.dart';
 
+/// Exam countdown — floating card with big numerals and a soft progress bar.
 class CountdownCard extends StatelessWidget {
   const CountdownCard({super.key});
 
@@ -15,94 +16,76 @@ class CountdownCard extends StatelessWidget {
         final percent = (model.progressPercent * 100).clamp(0, 100).toDouble();
         final examYear = model.examDate.year;
         final sessionStart = DateTime(examYear, 6, 2);
-        return Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(
-                  alpha: AppColors.isDark ? 0.18 : 0.05,
-                ),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
+
+        return FloatingCard(
+          radius: AppRadius.xl,
+          padding: const EdgeInsets.all(AppSpacing.x5),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.indigo.withAlpha(32),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      CupertinoIcons.calendar_today,
-                      size: 19,
-                      color: AppColors.indigo,
-                    ),
+                  const TintedIcon(
+                    icon: CupertinoIcons.calendar,
+                    color: AppColors.indigo,
+                    size: 36,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: AppSpacing.x3),
                   Expanded(
-                    child: Text(
-                      'Countdown Bac',
-                      style: AppText.titleStyle.copyWith(fontSize: 19),
+                    child: Text('Countdown BAC', style: AppText.titleStyle),
+                  ),
+                  PillBadge('Iunie $examYear', color: AppColors.blue),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.x4),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${model.daysRemaining}',
+                    style: TextStyle(
+                      fontFamily: '.SF Pro Display',
+                      fontSize: 44,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -1.2,
+                      height: 1,
+                      color: AppColors.label,
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.blue.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(9),
-                    ),
+                  const SizedBox(width: 6),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 5),
                     child: Text(
-                      'Iunie-Iulie $examYear',
-                      style: AppText.captionStyle.copyWith(
-                        color: AppColors.blue,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      'zile · ${model.weeksRemaining} săptămâni',
+                      style: AppText.subheadStyle,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Sesiunea începe pe ${_formatDateRo(sessionStart)} · probe scrise din ${_formatDateRo(model.examDate)}',
-                style: AppText.captionStyle,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                '${model.daysRemaining} zile · ${model.weeksRemaining} săptămâni',
-                style: AppText.bodyStyle.copyWith(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(
-                  minHeight: 8,
-                  value: model.progressPercent,
-                  backgroundColor: AppColors.separator.withValues(alpha: 0.6),
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    AppColors.blue,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.x3),
+              SoftProgressBar(value: model.progressPercent),
+              const SizedBox(height: AppSpacing.x2),
               Text(
                 '${percent.toStringAsFixed(0)}% din parcursul până la examen',
                 style: AppText.captionStyle,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.x3),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.x3,
+                  vertical: AppSpacing.x2,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.fill,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Text(
+                  'Sesiunea începe pe ${_formatDateRo(sessionStart)} · probe scrise din ${_formatDateRo(model.examDate)}',
+                  style: AppText.captionStyle,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.x2),
               Text(model.motivationalMessage, style: AppText.subheadStyle),
             ],
           ),

@@ -1,13 +1,15 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
+import '../../features/countdown/services/countdown_service.dart';
+import '../../features/gamification/widgets/badge_grid.dart';
+import '../../features/gamification/widgets/xp_progress_card.dart';
 import '../models/app_data.dart';
 import '../services/app_settings.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/notification_service.dart';
 import '../services/pdf_export_service.dart';
-import '../../features/countdown/services/countdown_service.dart';
 import '../widgets/common.dart';
 
 class UserProfileScreen extends StatefulWidget {
@@ -26,25 +28,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 100,
-            backgroundColor: AppColors.background,
-            surfaceTintColor: Colors.transparent,
-            scrolledUnderElevation: 0.5,
-            shadowColor: AppColors.separator,
-            leading: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () => Navigator.pop(context),
-              child: const Icon(CupertinoIcons.back, color: AppColors.blue),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
-              title: Text('Profil', style: AppText.largeTitleStyle),
-              expandedTitleScale: 1.0,
-              collapseMode: CollapseMode.none,
-            ),
-          ),
+          glassSliverBar(context, title: 'Profil'),
           SliverToBoxAdapter(
             child: user == null
                 ? const Center(child: CupertinoActivityIndicator())
@@ -55,34 +39,25 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                           snapshot.data ?? UserProfileData.defaults(user);
                       return Column(
                         children: [
-                          const SizedBox(height: 20),
+                          const SizedBox(height: AppSpacing.x6),
                           Center(
-                            child: Stack(
-                              children: [
-                                Container(
-                                  width: 90,
-                                  height: 90,
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        AppColors.blue,
-                                        AppColors.indigo,
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(28),
-                                  ),
-                                  child: const Icon(
-                                    CupertinoIcons.person_fill,
-                                    color: Colors.white,
-                                    size: 44,
-                                  ),
+                            child: Container(
+                              width: 92,
+                              height: 92,
+                              decoration: BoxDecoration(
+                                color: AppColors.tint(AppColors.blue),
+                                borderRadius: BorderRadius.circular(
+                                  AppRadius.xl,
                                 ),
-                              ],
+                              ),
+                              child: const Icon(
+                                CupertinoIcons.person_fill,
+                                color: AppColors.blue,
+                                size: 44,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppSpacing.x4),
                           Text(profile.name, style: AppText.titleStyle),
                           const SizedBox(height: 4),
                           Text(
@@ -90,8 +65,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                             style: AppText.subheadStyle,
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 24),
-                          IOSSection(
+                          CardGroup(
                             header: 'Informații personale',
                             children: [
                               _EditableCell(
@@ -124,47 +98,35 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                               ),
                             ],
                           ),
-                          IOSSection(
+                          CardGroup(
                             header: 'Profil BAC',
                             children: [
                               for (final bacProfile in appProfiles)
-                                GestureDetector(
+                                CardRow(
+                                  leading: TintedIcon(
+                                    icon: bacProfile.icon,
+                                    color: bacProfile.accentColor,
+                                  ),
+                                  title: bacProfile.name,
+                                  showChevron: false,
+                                  trailing:
+                                      profile.selectedProfile ==
+                                          bacProfile.name
+                                      ? const Icon(
+                                          CupertinoIcons
+                                              .checkmark_circle_fill,
+                                          color: AppColors.blue,
+                                          size: 22,
+                                        )
+                                      : null,
                                   onTap: () => FirestoreService.updateProfile(
                                     user: user,
                                     selectedProfile: bacProfile.name,
                                   ),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        AppIconBadge(
-                                          icon: bacProfile.icon,
-                                          color: bacProfile.accentColor,
-                                        ),
-                                        const SizedBox(width: 14),
-                                        Expanded(
-                                          child: Text(
-                                            bacProfile.name,
-                                            style: AppText.bodyStyle,
-                                          ),
-                                        ),
-                                        if (profile.selectedProfile ==
-                                            bacProfile.name)
-                                          const Icon(
-                                            CupertinoIcons.checkmark_alt,
-                                            color: AppColors.blue,
-                                            size: 20,
-                                          ),
-                                      ],
-                                    ),
-                                  ),
                                 ),
                             ],
                           ),
-                          const SizedBox(height: 40),
+                          const SizedBox(height: AppSpacing.x10),
                         ],
                       );
                     },
@@ -225,9 +187,16 @@ class _EditableCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        AppHaptics.selection();
+        onTap();
+      },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.x4,
+          vertical: 14,
+        ),
         child: Row(
           children: [
             SizedBox(
@@ -241,7 +210,7 @@ class _EditableCell extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const Icon(CupertinoIcons.pencil, color: AppColors.blue, size: 16),
+            const Icon(CupertinoIcons.pencil, color: AppColors.blue, size: 17),
           ],
         ),
       ),
@@ -260,25 +229,7 @@ class ProgressScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 100,
-            backgroundColor: AppColors.background,
-            surfaceTintColor: Colors.transparent,
-            scrolledUnderElevation: 0.5,
-            shadowColor: AppColors.separator,
-            leading: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () => Navigator.pop(context),
-              child: const Icon(CupertinoIcons.back, color: AppColors.blue),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
-              title: Text('Progres', style: AppText.largeTitleStyle),
-              expandedTitleScale: 1.0,
-              collapseMode: CollapseMode.none,
-            ),
-          ),
+          glassSliverBar(context, title: 'Progres'),
           SliverToBoxAdapter(
             child: user == null
                 ? const Center(child: CupertinoActivityIndicator())
@@ -292,11 +243,13 @@ class ProgressScreen extends StatelessWidget {
                           'Subiecte rezolvate',
                           '${progress.solvedCount}',
                           AppColors.blue,
+                          CupertinoIcons.doc_checkmark,
                         ),
                         (
                           'Timp total studiu',
                           _formatDuration(progress.totalStudySeconds),
                           AppColors.indigo,
+                          CupertinoIcons.clock,
                         ),
                         (
                           'Medie generală',
@@ -304,11 +257,13 @@ class ProgressScreen extends StatelessWidget {
                               ? '-'
                               : progress.averageGrade.toStringAsFixed(2),
                           AppColors.green,
+                          CupertinoIcons.chart_bar,
                         ),
                         (
                           'Streak curent',
                           '${progress.streakDays} zile',
                           AppColors.orange,
+                          CupertinoIcons.flame,
                         ),
                       ];
                       final subjectEntries =
@@ -317,72 +272,54 @@ class ProgressScreen extends StatelessWidget {
 
                       return Column(
                         children: [
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSpacing.x5),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: AppSpacing.page,
+                            ),
+                            child: XPProgressCard(),
+                          ),
+                          const SizedBox(height: AppSpacing.x3),
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.page,
+                            ),
                             child: GridView.count(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               crossAxisCount: 2,
-                              crossAxisSpacing: 10,
-                              mainAxisSpacing: 10,
-                              childAspectRatio: 1.6,
+                              crossAxisSpacing: AppSpacing.x3,
+                              mainAxisSpacing: AppSpacing.x3,
+                              childAspectRatio: 1.18,
                               children: [
                                 for (final stat in stats)
-                                  Container(
-                                    padding: const EdgeInsets.all(14),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.surface,
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          stat.$1,
-                                          style: AppText.captionStyle,
-                                        ),
-                                        Text(
-                                          stat.$2,
-                                          style: TextStyle(
-                                            fontFamily: '.SF Pro Display',
-                                            fontSize: 24,
-                                            fontWeight: FontWeight.w700,
-                                            color: stat.$3,
-                                            letterSpacing: -0.5,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                  StatTile(
+                                    label: stat.$1,
+                                    value: stat.$2,
+                                    accent: stat.$3,
+                                    icon: stat.$4,
                                   ),
                               ],
                             ),
                           ),
-                          IOSSection(
+                          CardGroup(
                             header: 'Progres pe materii',
                             footer: sessions.isEmpty
                                 ? 'Rezolvă un subiect ca să apară progresul real.'
                                 : null,
                             children: [
                               if (subjectEntries.isEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 14,
-                                  ),
-                                  child: Text(
-                                    'Nu ai încă sesiuni salvate.',
-                                    style: AppText.subheadStyle,
-                                  ),
+                                const EmptyState(
+                                  icon: CupertinoIcons.chart_bar_square,
+                                  title: 'Nicio sesiune încă',
+                                  message:
+                                      'Progresul pe materii apare după prima sesiune salvată.',
                                 )
                               else
                                 for (final entry in subjectEntries)
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
+                                      horizontal: AppSpacing.x4,
                                       vertical: 14,
                                     ),
                                     child: Column(
@@ -393,7 +330,11 @@ class ProgressScreen extends StatelessWidget {
                                           children: [
                                             Text(
                                               entry.key,
-                                              style: AppText.bodyStyle,
+                                              style: AppText.bodyStyle
+                                                  .copyWith(
+                                                    fontWeight:
+                                                        FontWeight.w500,
+                                                  ),
                                             ),
                                             Text(
                                               '${(entry.value * 100).toInt()}%',
@@ -406,28 +347,41 @@ class ProgressScreen extends StatelessWidget {
                                             ),
                                           ],
                                         ),
-                                        const SizedBox(height: 8),
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                          child: LinearProgressIndicator(
-                                            value: entry.value,
-                                            minHeight: 6,
-                                            backgroundColor:
-                                                AppColors.background,
-                                            valueColor:
-                                                const AlwaysStoppedAnimation<
-                                                  Color
-                                                >(AppColors.blue),
-                                          ),
+                                        const SizedBox(height: AppSpacing.x2),
+                                        SoftProgressBar(
+                                          value: entry.value,
+                                          height: 6,
                                         ),
                                       ],
                                     ),
                                   ),
                             ],
                           ),
-                          const SizedBox(height: 40),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              AppSpacing.page,
+                              AppSpacing.x5,
+                              AppSpacing.page,
+                              0,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: AppSpacing.x2,
+                                    bottom: AppSpacing.x2,
+                                  ),
+                                  child: Text(
+                                    'BADGE-URI',
+                                    style: AppText.footnoteSectionStyle,
+                                  ),
+                                ),
+                                const BadgeGrid(),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.x10),
                         ],
                       );
                     },
@@ -457,25 +411,7 @@ class HistoryScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 100,
-            backgroundColor: AppColors.background,
-            surfaceTintColor: Colors.transparent,
-            scrolledUnderElevation: 0.5,
-            shadowColor: AppColors.separator,
-            leading: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () => Navigator.pop(context),
-              child: const Icon(CupertinoIcons.back, color: AppColors.blue),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
-              title: Text('Istoric', style: AppText.largeTitleStyle),
-              expandedTitleScale: 1.0,
-              collapseMode: CollapseMode.none,
-            ),
-          ),
+          glassSliverBar(context, title: 'Istoric'),
           SliverToBoxAdapter(
             child: user == null
                 ? const Center(child: CupertinoActivityIndicator())
@@ -485,46 +421,42 @@ class HistoryScreen extends StatelessWidget {
                       final history = snapshot.data ?? const [];
                       return Column(
                         children: [
-                          const SizedBox(height: 8),
-                          IOSSection(
+                          CardGroup(
                             header: 'Sesiuni recente',
                             footer: history.isEmpty
                                 ? 'Istoricul se completează când marchezi subiecte ca rezolvate.'
                                 : null,
                             children: [
                               if (history.isEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 14,
-                                  ),
-                                  child: Text(
-                                    'Nu ai încă sesiuni salvate.',
-                                    style: AppText.subheadStyle,
-                                  ),
+                                const EmptyState(
+                                  icon: CupertinoIcons.clock,
+                                  title: 'Nicio sesiune încă',
+                                  message:
+                                      'Sesiunile finalizate vor apărea aici.',
                                 )
                               else
                                 for (final h in history)
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 12,
+                                      horizontal: AppSpacing.x4,
+                                      vertical: 13,
                                     ),
                                     child: Row(
                                       children: [
                                         Container(
                                           width: 4,
-                                          height: 44,
+                                          height: 46,
                                           decoration: BoxDecoration(
-                                            color: _gradeColor(
-                                              h.estimatedGrade,
+                                            gradient: AppGradients.accent(
+                                              _gradeColor(h.estimatedGrade),
                                             ),
-                                            borderRadius: BorderRadius.circular(
-                                              2,
-                                            ),
+                                            borderRadius:
+                                                BorderRadius.circular(
+                                                  AppRadius.pill,
+                                                ),
                                           ),
                                         ),
-                                        const SizedBox(width: 12),
+                                        const SizedBox(width: AppSpacing.x3),
                                         Expanded(
                                           child: Column(
                                             crossAxisAlignment:
@@ -532,7 +464,11 @@ class HistoryScreen extends StatelessWidget {
                                             children: [
                                               Text(
                                                 h.subjectName,
-                                                style: AppText.bodyStyle,
+                                                style: AppText.bodyStyle
+                                                    .copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
                                               ),
                                               const SizedBox(height: 2),
                                               Text(
@@ -549,23 +485,24 @@ class HistoryScreen extends StatelessWidget {
                                         ),
                                         Container(
                                           padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 5,
+                                            horizontal: 12,
+                                            vertical: 6,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: _gradeColor(
-                                              h.estimatedGrade,
-                                            ).withAlpha(31),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
+                                            color: AppColors.tint(
+                                              _gradeColor(h.estimatedGrade),
                                             ),
+                                            borderRadius:
+                                                BorderRadius.circular(
+                                                  AppRadius.sm,
+                                                ),
                                           ),
                                           child: Text(
-                                            h.estimatedGrade.toStringAsFixed(1),
-                                            style: TextStyle(
-                                              fontFamily: '.SF Pro Display',
+                                            h.estimatedGrade.toStringAsFixed(
+                                              1,
+                                            ),
+                                            style: AppText.statStyle.copyWith(
                                               fontSize: 17,
-                                              fontWeight: FontWeight.w700,
                                               color: _gradeColor(
                                                 h.estimatedGrade,
                                               ),
@@ -577,7 +514,7 @@ class HistoryScreen extends StatelessWidget {
                                   ),
                             ],
                           ),
-                          const SizedBox(height: 40),
+                          const SizedBox(height: AppSpacing.x10),
                         ],
                       );
                     },
@@ -639,25 +576,7 @@ class _NotificationsSettingsScreenState
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 100,
-            backgroundColor: AppColors.background,
-            surfaceTintColor: Colors.transparent,
-            scrolledUnderElevation: 0.5,
-            shadowColor: AppColors.separator,
-            leading: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () => Navigator.pop(context),
-              child: const Icon(CupertinoIcons.back, color: AppColors.blue),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
-              title: Text('Notificări', style: AppText.largeTitleStyle),
-              expandedTitleScale: 1.0,
-              collapseMode: CollapseMode.none,
-            ),
-          ),
+          glassSliverBar(context, title: 'Notificări'),
           SliverToBoxAdapter(
             child: user == null
                 ? const Center(child: CupertinoActivityIndicator())
@@ -668,12 +587,11 @@ class _NotificationsSettingsScreenState
                           snapshot.data ?? UserProfileData.defaults(user);
                       return Column(
                         children: [
-                          const SizedBox(height: 8),
-                          IOSSection(
+                          CardGroup(
                             header: 'Alerte studiu',
                             children: [
                               _SwitchCell(
-                                icon: CupertinoIcons.bell_fill,
+                                icon: CupertinoIcons.bell,
                                 color: AppColors.red,
                                 label: 'Reamintire zilnică',
                                 value: profile.dailyReminder,
@@ -690,7 +608,7 @@ class _NotificationsSettingsScreenState
                                 },
                               ),
                               _SwitchCell(
-                                icon: CupertinoIcons.flame_fill,
+                                icon: CupertinoIcons.flame,
                                 color: AppColors.orange,
                                 label: 'Streak zilnic',
                                 value: profile.streakReminder,
@@ -708,7 +626,7 @@ class _NotificationsSettingsScreenState
                               ),
                             ],
                           ),
-                          IOSSection(
+                          CardGroup(
                             header: 'Examen',
                             footer:
                                 'Vei fi notificat cu 7 zile înainte de sesiune.',
@@ -731,7 +649,7 @@ class _NotificationsSettingsScreenState
                                 },
                               ),
                               _SwitchCell(
-                                icon: CupertinoIcons.chart_bar_fill,
+                                icon: CupertinoIcons.chart_bar,
                                 color: AppColors.green,
                                 label: 'Actualizări note',
                                 value: profile.gradeUpdates,
@@ -743,7 +661,7 @@ class _NotificationsSettingsScreenState
                               ),
                             ],
                           ),
-                          const SizedBox(height: 40),
+                          const SizedBox(height: AppSpacing.x10),
                         ],
                       );
                     },
@@ -773,15 +691,26 @@ class _SwitchCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.x4,
+        vertical: 10,
+      ),
       child: Row(
         children: [
-          AppIconBadge(icon: icon, color: color),
+          TintedIcon(icon: icon, color: color),
           const SizedBox(width: 14),
-          Expanded(child: Text(label, style: AppText.bodyStyle)),
+          Expanded(
+            child: Text(
+              label,
+              style: AppText.bodyStyle.copyWith(fontWeight: FontWeight.w500),
+            ),
+          ),
           CupertinoSwitch(
             value: value,
-            onChanged: onChanged,
+            onChanged: (v) {
+              AppHaptics.selection();
+              onChanged(v);
+            },
             activeTrackColor: AppColors.blue,
           ),
         ],
@@ -798,8 +727,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool? _darkModeOverride;
-
   @override
   Widget build(BuildContext context) {
     final user = AuthService.currentUser;
@@ -808,25 +735,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 100,
-            backgroundColor: AppColors.background,
-            surfaceTintColor: Colors.transparent,
-            scrolledUnderElevation: 0.5,
-            shadowColor: AppColors.separator,
-            leading: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () => Navigator.pop(context),
-              child: const Icon(CupertinoIcons.back, color: AppColors.blue),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
-              title: Text('Setări', style: AppText.largeTitleStyle),
-              expandedTitleScale: 1.0,
-              collapseMode: CollapseMode.none,
-            ),
-          ),
+          glassSliverBar(context, title: 'Setări'),
           SliverToBoxAdapter(
             child: user == null
                 ? const Center(child: CupertinoActivityIndicator())
@@ -835,30 +744,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     builder: (context, snapshot) {
                       final profile =
                           snapshot.data ?? UserProfileData.defaults(user);
-                      final effectiveDarkMode =
-                          _darkModeOverride ?? profile.darkMode;
                       return Column(
                         children: [
-                          const SizedBox(height: 8),
-                          IOSSection(
+                          CardGroup(
                             header: 'Aspect',
                             children: [
                               _SwitchCell(
-                                icon: CupertinoIcons.moon_fill,
-                                color: AppColors.indigo,
-                                label: 'Mod întunecat',
-                                value: effectiveDarkMode,
-                                onChanged: (v) {
-                                  setState(() => _darkModeOverride = v);
-                                  AppSettings.setDarkMode(v);
-                                  FirestoreService.updateSettings(
-                                    user,
-                                    darkMode: v,
-                                  );
-                                },
-                              ),
-                              _SwitchCell(
-                                icon: CupertinoIcons.circle_grid_hex_fill,
+                                icon: CupertinoIcons.circle_grid_hex,
                                 color: AppColors.orange,
                                 label: 'Feedback haptic',
                                 value: profile.haptics,
@@ -872,11 +764,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ],
                           ),
-                          IOSSection(
+                          CardGroup(
                             header: 'Date',
                             children: [
                               _SwitchCell(
-                                icon: CupertinoIcons.cloud_fill,
+                                icon: CupertinoIcons.cloud,
                                 color: AppColors.teal,
                                 label: 'Salvare automată',
                                 value: profile.autoSave,
@@ -886,9 +778,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       autoSave: v,
                                     ),
                               ),
-                              IOSCell(
-                                leading: const AppIconBadge(
-                                  icon: CupertinoIcons.arrow_down_circle_fill,
+                              CardRow(
+                                leading: const TintedIcon(
+                                  icon: CupertinoIcons.arrow_down_circle,
                                   color: AppColors.blue,
                                 ),
                                 title: 'Exportă datele mele',
@@ -896,9 +788,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 onTap: () =>
                                     _exportUserData(context, profile, user),
                               ),
-                              IOSCell(
-                                leading: const AppIconBadge(
-                                  icon: CupertinoIcons.trash_fill,
+                              CardRow(
+                                leading: const TintedIcon(
+                                  icon: CupertinoIcons.trash,
                                   color: AppColors.red,
                                 ),
                                 title: 'Șterge tot istoricul',
@@ -908,7 +800,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 40),
+                          const SizedBox(height: AppSpacing.x10),
                         ],
                       );
                     },
@@ -982,57 +874,45 @@ class AboutScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 100,
-            backgroundColor: AppColors.background,
-            surfaceTintColor: Colors.transparent,
-            scrolledUnderElevation: 0.5,
-            shadowColor: AppColors.separator,
-            leading: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () => Navigator.pop(context),
-              child: const Icon(CupertinoIcons.back, color: AppColors.blue),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
-              title: Text('Despre', style: AppText.largeTitleStyle),
-              expandedTitleScale: 1.0,
-              collapseMode: CollapseMode.none,
-            ),
-          ),
+          glassSliverBar(context, title: 'Despre'),
           SliverToBoxAdapter(
             child: Column(
               children: [
-                const SizedBox(height: 32),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Image.asset(
-                    'assets/images/login_hero.png',
-                    width: 84,
-                    height: 84,
-                    fit: BoxFit.cover,
+                const SizedBox(height: AppSpacing.x8),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    boxShadow: AppShadows.floating,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                    child: Image.asset(
+                      'assets/images/login_hero.png',
+                      width: 88,
+                      height: 88,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: AppSpacing.x4),
                 Text(
-                  'Bac Pro',
+                  'BacPro',
                   style: TextStyle(
                     fontFamily: '.SF Pro Display',
-                    fontSize: 24,
+                    fontSize: 25,
                     fontWeight: FontWeight.w700,
                     color: AppColors.label,
-                    letterSpacing: -0.5,
+                    letterSpacing: -0.6,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text('Versiunea 1.0.0', style: AppText.subheadStyle),
-                const SizedBox(height: 32),
-                IOSSection(
+                const SizedBox(height: AppSpacing.x3),
+                CardGroup(
                   header: 'Aplicație',
                   children: [
-                    IOSCell(
-                      leading: const AppIconBadge(
+                    CardRow(
+                      leading: const TintedIcon(
                         icon: CupertinoIcons.doc_text,
                         color: AppColors.blue,
                       ),
@@ -1044,9 +924,9 @@ class AboutScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    IOSCell(
-                      leading: const AppIconBadge(
-                        icon: CupertinoIcons.lock_shield_fill,
+                    CardRow(
+                      leading: const TintedIcon(
+                        icon: CupertinoIcons.lock_shield,
                         color: AppColors.green,
                       ),
                       title: 'Politica de confidențialitate',
@@ -1057,9 +937,9 @@ class AboutScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    IOSCell(
-                      leading: const AppIconBadge(
-                        icon: CupertinoIcons.star_fill,
+                    CardRow(
+                      leading: const TintedIcon(
+                        icon: CupertinoIcons.star,
                         color: AppColors.orange,
                       ),
                       title: 'Evaluează pe App Store',
@@ -1067,21 +947,21 @@ class AboutScreen extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: AppSpacing.x10),
                 Text(
                   'Creat cu drag pentru elevii din România.',
                   style: AppText.captionStyle.copyWith(
                     color: AppColors.tertiaryLabel,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.x2),
                 Text(
-                  '© 2025 Bac Pro',
+                  '© 2025 BacPro',
                   style: AppText.captionStyle.copyWith(
                     color: AppColors.tertiaryLabel,
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: AppSpacing.x10),
               ],
             ),
           ),
@@ -1102,7 +982,7 @@ class TermsAndConditionsScreen extends StatelessWidget {
         _PolicySection(
           heading: '1. Despre aplicație',
           body:
-              'Bac Pro este o aplicație educațională pentru organizarea pregătirii la Bacalaureat. Conținutul are rol orientativ și nu înlocuiește materialele oficiale ale Ministerului Educației.',
+              'BacPro este o aplicație educațională pentru organizarea pregătirii la Bacalaureat. Conținutul are rol orientativ și nu înlocuiește materialele oficiale ale Ministerului Educației.',
         ),
         _PolicySection(
           heading: '2. Cont utilizator',
@@ -1117,7 +997,7 @@ class TermsAndConditionsScreen extends StatelessWidget {
         _PolicySection(
           heading: '4. Limitarea răspunderii',
           body:
-              'Bac Pro nu garantează obținerea unei note sau promovarea examenului. Rezultatele depind de pregătirea individuală, iar utilizatorul își asumă deciziile luate pe baza informațiilor din aplicație.',
+              'BacPro nu garantează obținerea unei note sau promovarea examenului. Rezultatele depind de pregătirea individuală, iar utilizatorul își asumă deciziile luate pe baza informațiilor din aplicație.',
         ),
         _PolicySection(
           heading: '5. Actualizări',
@@ -1160,7 +1040,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
         _PolicySection(
           heading: '5. Contact',
           body:
-              'Pentru întrebări legate de confidențialitate, folosește secțiunea „Mesaje dezvoltator” din aplicație.',
+              'Pentru întrebări legate de confidențialitate, folosește secțiunea „Mesaje dezvoltator" din aplicație.',
         ),
       ],
     );
@@ -1179,51 +1059,27 @@ class _PolicyTemplateScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 96,
-            backgroundColor: AppColors.background,
-            surfaceTintColor: Colors.transparent,
-            scrolledUnderElevation: 0.5,
-            shadowColor: AppColors.separator,
-            leading: CupertinoButton(
-              padding: EdgeInsets.zero,
-              onPressed: () => Navigator.pop(context),
-              child: const Icon(CupertinoIcons.back, color: AppColors.blue),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding: const EdgeInsets.fromLTRB(20, 0, 16, 14),
-              title: Text(title, style: AppText.largeTitleStyle),
-              expandedTitleScale: 1.0,
-              collapseMode: CollapseMode.none,
-            ),
-          ),
+          glassSliverBar(context, title: title, titleSize: 24),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.separator),
-                ),
-                padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.page,
+                AppSpacing.x5,
+                AppSpacing.page,
+                AppSpacing.x6,
+              ),
+              child: FloatingCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     for (int i = 0; i < sections.length; i++) ...[
-                      Text(
-                        sections[i].heading,
-                        style: AppText.bodyStyle.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+                      Text(sections[i].heading, style: AppText.headlineStyle),
                       const SizedBox(height: 6),
                       Text(sections[i].body, style: AppText.subheadStyle),
                       if (i != sections.length - 1) ...[
-                        const SizedBox(height: 14),
+                        const SizedBox(height: AppSpacing.x4),
                         Divider(color: AppColors.separator, height: 1),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: AppSpacing.x4),
                       ],
                     ],
                   ],

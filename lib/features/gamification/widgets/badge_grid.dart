@@ -20,9 +20,9 @@ class BadgeGrid extends StatelessWidget {
           itemCount: badges.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            mainAxisExtent: 110,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
+            mainAxisExtent: 116,
+            crossAxisSpacing: AppSpacing.x3,
+            mainAxisSpacing: AppSpacing.x3,
           ),
           itemBuilder: (context, index) {
             final badge = badges[index];
@@ -43,37 +43,34 @@ class _BadgeTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isUnlocked = badge.isUnlocked;
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.x4),
       decoration: BoxDecoration(
-        color: isUnlocked ? AppColors.green.withAlpha(22) : AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isUnlocked
-              ? AppColors.green.withAlpha(80)
-              : AppColors.separator,
-        ),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        boxShadow: AppShadows.soft,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             isUnlocked
-                ? CupertinoIcons.check_mark_circled_solid
-                : CupertinoIcons.lock_fill,
+                ? CupertinoIcons.checkmark_seal_fill
+                : CupertinoIcons.lock,
             color: isUnlocked ? AppColors.green : AppColors.tertiaryLabel,
-            size: 18,
+            size: 20,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.x2),
           Text(
             badge.title,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: AppText.bodyStyle.copyWith(
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
               fontSize: 15,
+              color: isUnlocked ? AppColors.label : AppColors.secondLabel,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
             badge.description,
             maxLines: 2,

@@ -1,12 +1,18 @@
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../services/auth_service.dart';
+import '../design/ui.dart';
+import '../models/app_data.dart';
 import '../services/app_settings.dart';
+import '../services/auth_service.dart';
 import 'main_shell.dart';
 
+/// Landing — bright, luminous, Apple-like. Soft color fields under glass.
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
@@ -28,16 +34,23 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
+    SystemChrome.setSystemUIOverlayStyle(
+      AppColors.isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+    );
 
     return Scaffold(
-      body: _AuthBackground(
+      body: _AuroraBackground(
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
               return SingleChildScrollView(
                 physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(22, 20, 22, 22),
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.x6,
+                  AppSpacing.x5,
+                  AppSpacing.x6,
+                  AppSpacing.x6,
+                ),
                 child: SizedBox(
                   height: constraints.maxHeight,
                   child: Center(
@@ -181,18 +194,23 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      body: _AuthBackground(
+      body: _AuroraBackground(
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final maxWidth = constraints.maxWidth >= 700 ? 500.0 : 420.0;
+              final maxWidth = constraints.maxWidth >= 700 ? 500.0 : 430.0;
               return SingleChildScrollView(
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: EdgeInsets.fromLTRB(18, 14, 18, 14 + keyboardInset),
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.x5,
+                  AppSpacing.x4,
+                  AppSpacing.x5,
+                  AppSpacing.x4 + keyboardInset,
+                ),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight - 28,
+                    minHeight: constraints.maxHeight - 32,
                   ),
                   child: Center(
                     child: ConstrainedBox(
@@ -203,85 +221,75 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             _BackButtonRow(onTap: () => Navigator.pop(context)),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppSpacing.x2),
                             Text(
                               'Autentificare',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontFamily: '.SF Pro Display',
-                                fontSize: 36,
-                                fontWeight: FontWeight.w800,
-                                color: _AuthColors.blueStrong,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Lucrează un subiect :)',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontFamily: '.SF Pro Display',
-                                fontSize: 18,
+                                fontSize: 30,
                                 fontWeight: FontWeight.w700,
-                                color: _AuthColors.textDark,
-                                height: 1.25,
+                                color: AppColors.label,
+                                letterSpacing: -0.7,
                               ),
                             ),
-                            const SizedBox(height: 18),
-                            _AuthField(
+                            const SizedBox(height: 6),
+                            Text(
+                              'Continuă-ți pregătirea.',
+                              textAlign: TextAlign.center,
+                              style: AppText.subheadStyle,
+                            ),
+                            const SizedBox(height: AppSpacing.x6),
+                            AppInput(
                               controller: _emailController,
                               hint: 'Email',
+                              prefixIcon: CupertinoIcons.envelope,
                               keyboardType: TextInputType.emailAddress,
-                              outlined: true,
                             ),
-                            const SizedBox(height: 12),
-                            _AuthField(
+                            const SizedBox(height: AppSpacing.x3),
+                            AppInput(
                               controller: _passwordController,
                               hint: 'Parolă',
+                              prefixIcon: CupertinoIcons.lock,
                               obscureText: _obscurePassword,
-                              suffix: GestureDetector(
-                                onTap: () {
-                                  AppHaptics.selection();
-                                  setState(
-                                    () => _obscurePassword = !_obscurePassword,
-                                  );
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.only(right: 14),
-                                  child: Icon(
-                                    _obscurePassword
-                                        ? CupertinoIcons.eye
-                                        : CupertinoIcons.eye_slash,
-                                    size: 18,
-                                    color: _AuthColors.textMuted,
-                                  ),
+                              suffix: _VisibilityToggle(
+                                obscured: _obscurePassword,
+                                onTap: () => setState(
+                                  () => _obscurePassword = !_obscurePassword,
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppSpacing.x2),
                             Align(
                               alignment: Alignment.centerRight,
                               child: CupertinoButton(
                                 padding: EdgeInsets.zero,
                                 minimumSize: Size.zero,
                                 onPressed: _isLoading ? null : _resetPassword,
-                                child: Text(
+                                child: const Text(
                                   'Ai uitat parola?',
                                   style: TextStyle(
-                                    color: _AuthColors.blueStrong,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 15,
+                                    color: AppColors.blue,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
                                   ),
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 10),
-                            _PrimaryAuthButton(
+                            const SizedBox(height: AppSpacing.x3),
+                            AppButton(
                               label: 'Intră în cont',
                               loading: _isLoading,
                               onPressed: _isLoading ? null : _signIn,
                             ),
-                            const SizedBox(height: 14),
+                            const SizedBox(height: AppSpacing.x4),
+                            const _AuthSectionDivider(label: 'sau continuă cu'),
+                            const SizedBox(height: AppSpacing.x4),
+                            _GoogleAuthButton(
+                              enabled: !_isLoading,
+                              onTap: _signInWithGoogle,
+                            ),
+                            const SizedBox(height: AppSpacing.x5),
                             Center(
                               child: GestureDetector(
                                 onTap: () {
@@ -293,22 +301,22 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
                                     ),
                                   );
                                 },
-                                child: Text(
-                                  'Creează cont nou',
-                                  style: TextStyle(
-                                    color: _AuthColors.textDark,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 17,
+                                child: Text.rich(
+                                  TextSpan(
+                                    text: 'Nu ai cont?  ',
+                                    style: AppText.subheadStyle,
+                                    children: const [
+                                      TextSpan(
+                                        text: 'Creează unul',
+                                        style: TextStyle(
+                                          color: AppColors.blue,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            const _AuthSectionDivider(label: 'Sau continuă cu'),
-                            const SizedBox(height: 10),
-                            _SocialAuthRow(
-                              enabled: !_isLoading,
-                              onGoogleTap: _signInWithGoogle,
                             ),
                           ],
                         ),
@@ -442,18 +450,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      body: _AuthBackground(
+      body: _AuroraBackground(
         child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final maxWidth = constraints.maxWidth >= 700 ? 500.0 : 420.0;
+              final maxWidth = constraints.maxWidth >= 700 ? 500.0 : 430.0;
               return SingleChildScrollView(
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: EdgeInsets.fromLTRB(18, 14, 18, 14 + keyboardInset),
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.x5,
+                  AppSpacing.x4,
+                  AppSpacing.x5,
+                  AppSpacing.x4 + keyboardInset,
+                ),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight - 28,
+                    minHeight: constraints.maxHeight - 32,
                   ),
                   child: Center(
                     child: ConstrainedBox(
@@ -464,118 +477,98 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             _BackButtonRow(onTap: () => Navigator.pop(context)),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppSpacing.x2),
                             Text(
                               'Creează cont',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontFamily: '.SF Pro Display',
-                                fontSize: 31,
-                                fontWeight: FontWeight.w800,
-                                color: _AuthColors.blueStrong,
-                                letterSpacing: -0.5,
+                                fontSize: 30,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.label,
+                                letterSpacing: -0.7,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 6),
                             Text(
-                              'Creează un cont pentru a salva\nprogresul și sesiunile tale BAC',
+                              'Îți salvăm progresul și sesiunile.',
                               textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontFamily: '.SF Pro Display',
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: _AuthColors.textDark,
-                                height: 1.3,
-                              ),
+                              style: AppText.subheadStyle,
                             ),
-                            const SizedBox(height: 18),
-                            _AuthField(
+                            const SizedBox(height: AppSpacing.x6),
+                            AppInput(
                               controller: _emailController,
                               hint: 'Email',
+                              prefixIcon: CupertinoIcons.envelope,
                               keyboardType: TextInputType.emailAddress,
-                              outlined: true,
                             ),
-                            const SizedBox(height: 12),
-                            _AuthField(
+                            const SizedBox(height: AppSpacing.x3),
+                            AppInput(
                               controller: _passwordController,
                               hint: 'Parolă',
+                              prefixIcon: CupertinoIcons.lock,
                               obscureText: _obscurePassword,
-                              suffix: GestureDetector(
-                                onTap: () {
-                                  AppHaptics.selection();
-                                  setState(
-                                    () => _obscurePassword = !_obscurePassword,
-                                  );
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.only(right: 14),
-                                  child: Icon(
-                                    _obscurePassword
-                                        ? CupertinoIcons.eye
-                                        : CupertinoIcons.eye_slash,
-                                    size: 18,
-                                    color: _AuthColors.textMuted,
-                                  ),
+                              suffix: _VisibilityToggle(
+                                obscured: _obscurePassword,
+                                onTap: () => setState(
+                                  () => _obscurePassword = !_obscurePassword,
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 12),
-                            _AuthField(
+                            const SizedBox(height: AppSpacing.x3),
+                            AppInput(
                               controller: _confirmController,
                               hint: 'Confirmă parola',
+                              prefixIcon: CupertinoIcons.lock_rotation,
                               obscureText: _obscureConfirm,
-                              suffix: GestureDetector(
-                                onTap: () {
-                                  AppHaptics.selection();
-                                  setState(
-                                    () => _obscureConfirm = !_obscureConfirm,
-                                  );
-                                },
-                                child: Padding(
-                                  padding: const EdgeInsets.only(right: 14),
-                                  child: Icon(
-                                    _obscureConfirm
-                                        ? CupertinoIcons.eye
-                                        : CupertinoIcons.eye_slash,
-                                    size: 18,
-                                    color: _AuthColors.textMuted,
-                                  ),
+                              suffix: _VisibilityToggle(
+                                obscured: _obscureConfirm,
+                                onTap: () => setState(
+                                  () => _obscureConfirm = !_obscureConfirm,
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 14),
-                            _PrimaryAuthButton(
+                            const SizedBox(height: AppSpacing.x5),
+                            AppButton(
                               label: 'Creează cont',
                               loading: _isLoading,
                               onPressed: _isLoading ? null : _register,
                             ),
-                            const SizedBox(height: 14),
-                            GestureDetector(
-                              onTap: () {
-                                AppHaptics.selection();
-                                Navigator.pushReplacement(
-                                  context,
-                                  CupertinoPageRoute(
-                                    builder: (_) => const LoginFormScreen(),
+                            const SizedBox(height: AppSpacing.x4),
+                            const _AuthSectionDivider(label: 'sau continuă cu'),
+                            const SizedBox(height: AppSpacing.x4),
+                            _GoogleAuthButton(
+                              enabled: !_isLoading,
+                              onTap: _signInWithGoogle,
+                            ),
+                            const SizedBox(height: AppSpacing.x5),
+                            Center(
+                              child: GestureDetector(
+                                onTap: () {
+                                  AppHaptics.selection();
+                                  Navigator.pushReplacement(
+                                    context,
+                                    CupertinoPageRoute(
+                                      builder: (_) => const LoginFormScreen(),
+                                    ),
+                                  );
+                                },
+                                child: Text.rich(
+                                  TextSpan(
+                                    text: 'Ai deja cont?  ',
+                                    style: AppText.subheadStyle,
+                                    children: const [
+                                      TextSpan(
+                                        text: 'Intră în cont',
+                                        style: TextStyle(
+                                          color: AppColors.blue,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                );
-                              },
-                              child: Text(
-                                'Intră în cont',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: _AuthColors.textDark,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15,
                                 ),
                               ),
-                            ),
-                            const SizedBox(height: 14),
-                            const _AuthSectionDivider(label: 'Sau continuă cu'),
-                            const SizedBox(height: 10),
-                            _SocialAuthRow(
-                              enabled: !_isLoading,
-                              onGoogleTap: _signInWithGoogle,
                             ),
                           ],
                         ),
@@ -604,103 +597,58 @@ class _LandingContent extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 0),
+        const Spacer(flex: 2),
         Column(
           children: [
-            Transform.translate(
-              offset: const Offset(0, -10),
-              child: Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: Colors.white, width: 1.4),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(29),
-                  child: Image.asset(
-                    'assets/images/login_hero.png',
-                    fit: BoxFit.cover,
-                  ),
+            Container(
+              width: 116,
+              height: 116,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppRadius.xl),
+                boxShadow: AppShadows.floating,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.xl - 2),
+                child: Image.asset(
+                  'assets/images/login_hero.png',
+                  fit: BoxFit.cover,
                 ),
               ),
             ),
-            const SizedBox(height: 10),
-            const Text(
+            const SizedBox(height: AppSpacing.x6),
+            Text(
               'BacPro',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontFamily: '.SF Pro Display',
-                fontSize: 46,
+                fontSize: 44,
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
-                letterSpacing: -0.6,
+                color: AppColors.label,
+                letterSpacing: -1.2,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: AppSpacing.x2),
             Text(
-              'Singura aplicație dedicată elevilor',
+              'Bacalaureatul, mai simplu.',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: '.SF Pro Text',
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.white.withAlpha(215),
-                height: 1.35,
-              ),
+              style: AppText.subheadStyle.copyWith(fontSize: 16, height: 1.4),
             ),
           ],
         ),
+        const Spacer(flex: 3),
         Padding(
-          padding: const EdgeInsets.only(top: 0, bottom: 44),
+          padding: const EdgeInsets.only(bottom: AppSpacing.x5),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SizedBox(
-                height: 62,
-                child: CupertinoButton(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  onPressed: onLogin,
-                  child: Text(
-                    'Autentificare',
-                    style: TextStyle(
-                      color: _AuthColors.blueStrong,
-                      fontFamily: '.SF Pro Display',
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      height: 1.15,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 62,
-                child: CupertinoButton(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  onPressed: onSignup,
-                  child: Text(
-                    'Înregistrare',
-                    style: TextStyle(
-                      color: _AuthColors.blueStrong,
-                      fontFamily: '.SF Pro Display',
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      height: 1.15,
-                    ),
-                  ),
-                ),
+              AppButton(label: 'Autentificare', onPressed: onLogin, height: 56),
+              const SizedBox(height: AppSpacing.x3),
+              AppButton(
+                label: 'Creează cont',
+                onPressed: onSignup,
+                style: AppButtonStyle.glass,
+                height: 56,
               ),
             ],
           ),
@@ -710,46 +658,35 @@ class _LandingContent extends StatelessWidget {
   }
 }
 
-class _AuthBackground extends StatelessWidget {
+/// Bright, luminous background: off-white canvas with soft blue/cyan fields.
+class _AuroraBackground extends StatelessWidget {
   final Widget child;
-  const _AuthBackground({required this.child});
+  const _AuroraBackground({required this.child});
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF0F57DA), Color(0xFF2A78FF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
+      decoration: BoxDecoration(color: AppColors.loginBackground),
       child: Stack(
         fit: StackFit.expand,
         children: [
-          const _Blob(
-            width: 430,
-            height: 520,
-            color: Color(0x3348A6FF),
-            alignment: Alignment.bottomLeft,
-            dx: -100,
-            dy: 120,
+          _GlowField(
+            color: AppColors.blue.withValues(
+              alpha: AppColors.isDark ? 0.10 : 0.07,
+            ),
+            alignment: Alignment.topLeft,
+            size: 420,
+            dx: -120,
+            dy: -140,
           ),
-          const _Blob(
-            width: 380,
-            height: 430,
-            color: Color(0x224CA6FF),
-            alignment: Alignment.topRight,
-            dx: 82,
-            dy: -90,
-          ),
-          const _Blob(
-            width: 260,
-            height: 220,
-            color: Color(0x663EC7AF),
+          _GlowField(
+            color: AppColors.cyan.withValues(
+              alpha: AppColors.isDark ? 0.07 : 0.08,
+            ),
             alignment: Alignment.bottomRight,
-            dx: 78,
-            dy: 66,
+            size: 440,
+            dx: 140,
+            dy: 180,
           ),
           child,
         ],
@@ -758,19 +695,17 @@ class _AuthBackground extends StatelessWidget {
   }
 }
 
-class _Blob extends StatelessWidget {
-  final double width;
-  final double height;
+class _GlowField extends StatelessWidget {
   final Color color;
   final Alignment alignment;
+  final double size;
   final double dx;
   final double dy;
 
-  const _Blob({
-    required this.width,
-    required this.height,
+  const _GlowField({
     required this.color,
     required this.alignment,
+    required this.size,
     this.dx = 0,
     this.dy = 0,
   });
@@ -781,12 +716,12 @@ class _Blob extends StatelessWidget {
       alignment: alignment,
       child: Transform.translate(
         offset: Offset(dx, dy),
-        child: Container(
-          width: width,
-          height: height,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(height * 0.52),
+        child: ImageFiltered(
+          imageFilter: ui.ImageFilter.blur(sigmaX: 70, sigmaY: 70),
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
           ),
         ),
       ),
@@ -794,24 +729,21 @@ class _Blob extends StatelessWidget {
   }
 }
 
+/// Frosted glass auth panel.
 class _AuthPanel extends StatelessWidget {
   final Widget child;
   const _AuthPanel({required this.child});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(22, 20, 22, 18),
-      decoration: BoxDecoration(
-        color: _AuthColors.card,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(30),
-            blurRadius: 36,
-            offset: const Offset(0, 18),
-          ),
-        ],
+    return GlassPanel(
+      radius: AppRadius.xl,
+      shadows: AppShadows.floating,
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.x6,
+        AppSpacing.x5,
+        AppSpacing.x6,
+        AppSpacing.x6,
       ),
       child: child,
     );
@@ -826,131 +758,37 @@ class _AuthSectionDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(
-          child: Container(
-            height: 1,
-            color: _AuthColors.textMuted.withAlpha(70),
-          ),
-        ),
+        Expanded(child: Container(height: 0.5, color: AppColors.separator)),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: _AuthColors.textMuted,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.x3),
+          child: Text(label, style: AppText.captionStyle),
         ),
-        Expanded(
-          child: Container(
-            height: 1,
-            color: _AuthColors.textMuted.withAlpha(70),
-          ),
-        ),
+        Expanded(child: Container(height: 0.5, color: AppColors.separator)),
       ],
     );
   }
 }
 
-class _AuthField extends StatelessWidget {
-  final TextEditingController controller;
-  final String hint;
-  final bool obscureText;
-  final bool outlined;
-  final TextInputType keyboardType;
-  final Widget? suffix;
+class _VisibilityToggle extends StatelessWidget {
+  final bool obscured;
+  final VoidCallback onTap;
 
-  const _AuthField({
-    required this.controller,
-    required this.hint,
-    this.obscureText = false,
-    this.outlined = false,
-    this.keyboardType = TextInputType.text,
-    this.suffix,
-  });
+  const _VisibilityToggle({required this.obscured, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 58,
-      decoration: BoxDecoration(
-        color: outlined ? Colors.white : const Color(0xFFECEFF6),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: outlined ? _AuthColors.blueStrong : const Color(0xFFECEFF6),
-          width: outlined ? 2 : 1,
+    return GestureDetector(
+      onTap: () {
+        AppHaptics.selection();
+        onTap();
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(right: 14),
+        child: Icon(
+          obscured ? CupertinoIcons.eye : CupertinoIcons.eye_slash,
+          size: 19,
+          color: AppColors.tertiaryLabel,
         ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: controller,
-              obscureText: obscureText,
-              keyboardType: keyboardType,
-              scrollPadding: const EdgeInsets.only(bottom: 140),
-              style: TextStyle(
-                fontFamily: '.SF Pro Text',
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: _AuthColors.textDark,
-              ),
-              decoration: InputDecoration(
-                hintText: hint,
-                hintStyle: TextStyle(
-                  color: _AuthColors.textMuted,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                ),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-              ),
-            ),
-          ),
-          ?suffix,
-        ],
-      ),
-    );
-  }
-}
-
-class _PrimaryAuthButton extends StatelessWidget {
-  final String label;
-  final bool loading;
-  final VoidCallback? onPressed;
-
-  const _PrimaryAuthButton({
-    required this.label,
-    required this.loading,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 64,
-      child: CupertinoButton(
-        color: _AuthColors.blueStrong,
-        borderRadius: BorderRadius.circular(14),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
-        onPressed: onPressed,
-        child: loading
-            ? const CupertinoActivityIndicator(color: Colors.white)
-            : Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontFamily: '.SF Pro Display',
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  height: 1.1,
-                ),
-              ),
       ),
     );
   }
@@ -969,24 +807,12 @@ class _BackButtonRow extends StatelessWidget {
         minimumSize: Size.zero,
         onPressed: onTap,
         child: Icon(
-          CupertinoIcons.back,
+          CupertinoIcons.chevron_back,
           size: 24,
-          color: _AuthColors.blueStrong,
+          color: AppColors.blue,
         ),
       ),
     );
-  }
-}
-
-class _SocialAuthRow extends StatelessWidget {
-  final bool enabled;
-  final VoidCallback onGoogleTap;
-
-  const _SocialAuthRow({required this.enabled, required this.onGoogleTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return _GoogleAuthButton(enabled: enabled, onTap: onGoogleTap);
   }
 }
 
@@ -998,7 +824,7 @@ class _GoogleAuthButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Pressable(
       onTap: enabled
           ? () {
               AppHaptics.light();
@@ -1008,28 +834,28 @@ class _GoogleAuthButton extends StatelessWidget {
       child: Opacity(
         opacity: enabled ? 1 : 0.45,
         child: Container(
-          height: 56,
-          width: 214,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          height: 52,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFDADCE0)),
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.separator),
+            boxShadow: AppShadows.soft,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               CustomPaint(
                 painter: _GoogleLogoPainter(),
-                size: const Size(26, 26),
+                size: const Size(22, 22),
               ),
-              const SizedBox(width: 12),
-              const Text(
-                'Google',
+              const SizedBox(width: AppSpacing.x3),
+              Text(
+                'Continuă cu Google',
                 style: TextStyle(
-                  color: Color(0xFF3C4043),
+                  color: AppColors.label,
                   fontWeight: FontWeight.w600,
-                  fontSize: 16,
+                  fontSize: 15,
+                  letterSpacing: -0.2,
                 ),
               ),
             ],
@@ -1040,53 +866,52 @@ class _GoogleAuthButton extends StatelessWidget {
   }
 }
 
+/// Renders the four-color Google "G": red top, yellow left, green bottom,
+/// blue upper-right plus the horizontal crossbar entering from the right.
 class _GoogleLogoPainter extends CustomPainter {
+  static const _red = Color(0xFFEA4335);
+  static const _yellow = Color(0xFFFBBC05);
+  static const _green = Color(0xFF34A853);
+  static const _blue = Color(0xFF4285F4);
+
+  double _rad(double deg) => deg * math.pi / 180.0;
+
   @override
   void paint(Canvas canvas, Size size) {
-    final strokeWidth = size.width * 0.18;
-    final radius = (size.width - strokeWidth) / 2.1;
+    final strokeWidth = size.width * 0.22;
+    final radius = (size.width - strokeWidth) / 2;
     final center = Offset(size.width / 2, size.height / 2);
     final rect = Rect.fromCircle(center: center, radius: radius);
 
     final paint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round;
+      ..strokeCap = StrokeCap.butt;
 
-    paint.color = const Color(0xFFEA4335);
-    canvas.drawArc(rect, -0.45, 1.40, false, paint);
-    paint.color = const Color(0xFFFBBC05);
-    canvas.drawArc(rect, 0.95, 0.90, false, paint);
-    paint.color = const Color(0xFF34A853);
-    canvas.drawArc(rect, 1.85, 1.02, false, paint);
-    paint.color = const Color(0xFF4285F4);
-    canvas.drawArc(rect, 2.87, 2.95, false, paint);
+    // Angles are clockwise from east (3 o'clock); the right side stays open
+    // for the crossbar.
+    paint.color = _green;
+    canvas.drawArc(rect, _rad(40), _rad(95), false, paint);
+    paint.color = _yellow;
+    canvas.drawArc(rect, _rad(135), _rad(75), false, paint);
+    paint.color = _red;
+    canvas.drawArc(rect, _rad(210), _rad(100), false, paint);
+    paint.color = _blue;
+    canvas.drawArc(rect, _rad(310), _rad(42), false, paint);
 
+    // Blue crossbar: from the centre out to the ring on the right side.
     final barPaint = Paint()
       ..style = PaintingStyle.fill
-      ..color = const Color(0xFF4285F4);
-
-    final barHeight = strokeWidth * 0.72;
-    final barWidth = radius * 0.95;
-    final barRect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(
-        center.dx + radius * 0.05,
-        center.dy - (barHeight / 2),
-        barWidth,
-        barHeight,
-      ),
-      Radius.circular(barHeight),
+      ..color = _blue;
+    final barRect = Rect.fromLTRB(
+      center.dx - strokeWidth * 0.1,
+      center.dy - strokeWidth / 2,
+      center.dx + radius + strokeWidth / 2,
+      center.dy + strokeWidth / 2,
     );
-    canvas.drawRRect(barRect, barPaint);
+    canvas.drawRect(barRect, barPaint);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _AuthColors {
-  static const Color card = Color(0xFFF3F5FB);
-  static const Color blueStrong = Color(0xFF2A4CC8);
-  static const Color textDark = Color(0xFF111111);
-  static const Color textMuted = Color(0xFF666B78);
 }
