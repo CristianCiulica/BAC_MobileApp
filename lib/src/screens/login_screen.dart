@@ -176,7 +176,7 @@ class _LoginFormScreenState extends State<LoginFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
     final isKeyboardOpen = keyboardInset > 0;
 
     return Scaffold(
@@ -451,7 +451,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final keyboardInset = MediaQuery.viewInsetsOf(context).bottom;
+    final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
     final isKeyboardOpen = keyboardInset > 0;
 
     return Scaffold(
@@ -917,6 +917,7 @@ class _AuthField extends StatelessWidget {
               controller: controller,
               obscureText: obscureText,
               keyboardType: keyboardType,
+              scrollPadding: const EdgeInsets.only(bottom: 140),
               style: TextStyle(
                 fontFamily: '.SF Pro Text',
                 fontSize: 18,
