@@ -32,6 +32,7 @@ BacPro este o aplicație mobilă dezvoltată cu **Flutter**, dedicată elevilor 
 
 Pentru a rula acest proiect local, urmează pașii de mai jos. Asigură-te că ai [Flutter instalat](https://docs.flutter.dev/get-started/install) pe mașina ta.
 
+
 ### 1. Clonează repozitoriul
 
 ```bash
