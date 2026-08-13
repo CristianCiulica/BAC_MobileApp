@@ -5,6 +5,7 @@ BacPro este o aplicație mobilă dezvoltată cu **Flutter**, dedicată elevilor 
 
 > **Notă:** În acest stadiu, proiectul reprezintă o implementare de **Frontend**. Backend-ul și integrarea cu baza de date pentru fișierele PDF urmează a fi adăugate.
 
+
 ---
 
 ## Caracteristici principale
