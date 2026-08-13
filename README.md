@@ -2,6 +2,7 @@
 
 BacPro este o aplicație mobilă dezvoltată cu **Flutter**, dedicată elevilor de liceu din România care se pregătesc pentru examenul de Bacalaureat. Proiectul oferă o interfață intuitivă, curată și rapidă (inspirată din designul nativ iOS - Cupertino), care îi ajută pe elevi să se organizeze, să rezolve variante și să își monitorizeze progresul.
 
+
 > **Notă:** În acest stadiu, proiectul reprezintă o implementare de **Frontend**. Backend-ul și integrarea cu baza de date pentru fișierele PDF urmează a fi adăugate.
 
 ---
